@@ -5,23 +5,31 @@
 
 package logs
 
-func NewRuntimeLogContent(maxnum int) (rtl *RuntimeLogContent) {
+// 新建一个运行时日志
+func NewRuntimeLog(maxnum int) (rtl *RuntimeLog) {
 	var logs []string
 	if maxnum > 0 {
 		logs = make([]string, 0, maxnum)
 	}
-	rtl = &RuntimeLogContent{
+	rtl = &RuntimeLog{
 		logs:   logs,
 		maxnum: maxnum,
 	}
 	return
 }
 
-func (rtl *RuntimeLogContent) Write(p []byte) (n int, err error) {
+// 设置运行时日志的最大条目数
+func (rtl *RuntimeLog) SetMax(maxnum int) (err error) {
+	rtl.maxnum = maxnum
+	return
+}
+
+// 写入一条运行时日志
+func (rtl *RuntimeLog) Write(p []byte) (n int, err error) {
 	if rtl.maxnum > 0 {
 		llen := len(rtl.logs)
 		if llen >= rtl.maxnum {
-			logs := make([]string, 0, maxnum)
+			logs := make([]string, 0, rtl.maxnum)
 			logs = rtl.logs[1:]
 			logs = append(logs, string(p))
 			rtl.logs = logs
@@ -31,9 +39,11 @@ func (rtl *RuntimeLogContent) Write(p []byte) (n int, err error) {
 	} else {
 		rtl.logs = append(rtl.logs, string(p))
 	}
+	n = len(string(p))
 	return
 }
 
-func (rtl *RuntimeLogContent) Output() (output []string) {
+// 输出运行时日志
+func (rtl *RuntimeLog) Output() (output []string) {
 	return rtl.logs
 }

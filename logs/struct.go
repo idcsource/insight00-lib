@@ -10,18 +10,19 @@ import (
 	"os"
 )
 
+// 日志
 type Logs struct {
-	logstype LogsType
-	log      *log.Logger
-	logstart bool
+	runtimelog map[string](*RuntimeLog)
+	logs       map[string](*log.Logger)
 }
 
 // Runtime log, in the memory, if software stop, the log will disappear.
-type RuntimeLogContent struct {
+type RuntimeLog struct {
 	logs   []string
 	maxnum int
 }
 
-type FileLogContent struct {
+// 文件型日志
+type FileLog struct {
 	file *os.File
 }
