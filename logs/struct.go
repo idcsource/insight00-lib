@@ -12,8 +12,8 @@ import (
 
 // 日志
 type Logs struct {
-	runtimelog map[string](*RuntimeLog)
-	logs       map[string](*log.Logger)
+	runtimelog *RuntimeLog
+	logs       *log.Logger
 }
 
 // Runtime log, in the memory, if software stop, the log will disappear.

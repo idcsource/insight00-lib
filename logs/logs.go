@@ -6,59 +6,45 @@
 package logs
 
 import (
-	"fmt"
 	"log"
 )
 
 // 创建日志
 func NewLogs() (logs *Logs) {
-	logs = &Logs{
-		runtimelog: make(map[string]*RuntimeLog),
-		logs:       make(map[string]*log.Logger),
-	}
+	logs = &Logs{}
 	return
 }
 
 // 设置一个运行时日志
-func (logs *Logs) SetRuntimeLog(name string, prefix string, maxnum int) (err error) {
+func (logs *Logs) SetRuntimeLog(prefix string, maxnum int) (err error) {
 	rtl := NewRuntimeLog(maxnum)
 	prefix = prefix + " "
 	runlogs := log.New(rtl, prefix, log.Ldate|log.Ltime)
-	logs.runtimelog[name] = rtl
-	logs.logs[name] = runlogs
+	logs.runtimelog = rtl
+	logs.logs = runlogs
 	return
 }
 
 // 设置一个文件日志
-func (logs *Logs) SetFileLog(name string, prefix string, filename string) (err error) {
+func (logs *Logs) SetFileLog(prefix string, filename string) (err error) {
 	fl, err := NewFileLog(filename)
 	if err != nil {
 		return
 	}
 	prefix = prefix + " "
 	flogs := log.New(fl, prefix, log.Ldate|log.Ltime)
-	logs.logs[name] = flogs
+	logs.logs = flogs
 	return
 }
 
 // 写入日志
-func (logs *Logs) PrintLog(name string, s ...interface{}) (err error) {
-	_, have := logs.logs[name]
-	if have == false {
-		err = fmt.Errorf("logs: Thers's no log name \"%v\"", name)
-		return
-	}
-	logs.logs[name].Print(s)
+func (logs *Logs) PrintLog(s ...interface{}) (err error) {
+	logs.logs.Print(s)
 	return
 }
 
 // 输入运行时日志
-func (logs *Logs) RuntimeOutput(name string) (output []string, err error) {
-	_, have := logs.runtimelog[name]
-	if have == false {
-		err = fmt.Errorf("logs: Thers's no log name \"%v\"", name)
-		return
-	}
-	output = logs.runtimelog[name].Output()
+func (logs *Logs) RuntimeOutput() (output []string, err error) {
+	output = logs.runtimelog.Output()
 	return
 }
