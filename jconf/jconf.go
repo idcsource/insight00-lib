@@ -161,14 +161,14 @@ func (j *JsonConf) GetBool(node string) (b bool, err error) {
 }
 
 // 从某个节点捡出配置，并返回枚举，枚举的样式为“a,b,c,d,e”的字符串，返回为[]string
-func (j *JsonConf) GetEmun(node string) (em []string, err error) {
+func (j *JsonConf) GetEnum(node string) (em []string, err error) {
 	val, err := j.GetValue(node)
 	if err != nil {
 		return
 	}
 	b, ok := val.(string)
 	if ok != true {
-		err = fmt.Errorf("jconf: The \"%v\" value not a emun", node)
+		err = fmt.Errorf("jconf: The \"%v\" value not a emum", node)
 		return
 	}
 	em = strings.Split(b, ",")
