@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"runtime"
 
 	"github.com/idcsource/insight00-lib/base"
 	"github.com/idcsource/insight00-lib/jconf"
@@ -41,6 +42,16 @@ func NewWeb(config *jconf.JsonConf, log *logs.Logs) (web *Web) {
 		static = base.DirMustEnd(static)
 	}
 	web.static = static
+
+	// 准备最大并发
+	var max int64
+	var ok1 error
+	max, ok1 = web.config.GetInt64("max_routine")
+	if ok1 != nil {
+		max = int64(runtime.NumCPU()) * MAX_ROUTINE_RATIO
+	}
+	web.max_routine = make(chan bool, max)
+
 	return
 }
 
@@ -171,6 +182,12 @@ func (web *Web) Start() (err error) {
 
 //HTTP的路由，提供给"net/http"包使用
 func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
+	//对进程数的控制
+	web.max_routine <- true
+	defer func() {
+		<-web.max_routine
+	}()
+
 	//要运行的Floor
 	var runfloor FloorInterface
 	//将获得的URL用斜线拆分成[]string
