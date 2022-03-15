@@ -16,5 +16,5 @@ type Dot struct {
 	Time     time.Time           // 这次修改dot的时间点，作为一致性检查使用
 	Edition  uint64              // 修改版本号，新建时为1,每次修改每次加1,作为一致性检查使用
 	Contexts map[string]*Context // 上下文关系
-	Data     interface{}         // 数据，接收任何可以接收的数据，建议使用内部数据类型，否则建议符合iendecode.BinaryCoder接口
+	Data     []byte              // 数据，上层应用应该知道自己的到底是什么数据类型，并自行转换
 }

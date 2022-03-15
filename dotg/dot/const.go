@@ -9,4 +9,12 @@ const (
 	DOT_NOW_DEFAULT_VERSION uint8 = 1 // 当前dot默认版本号，涉及到后续升级时使用
 
 	BLOCK_PATH_DEEP uint8 = 2 // 存储dot的block的路径深度
+
+	DOT_FILE_NAME_DATA = "_data"
+
+	DOT_FILE_NAME_CONTEXT = "_context"
+
+	DEPLOYED_FILE = "deployed"
+
+	DEPLOYED_FILE_CONTENT = "Have Deployed"
 )

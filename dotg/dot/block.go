@@ -33,13 +33,13 @@ func InitBlock(path string, name string, deep uint8) (err error) {
 		err = fmt.Errorf("dot: %v", err)
 		return
 	}
-	deployed_file := local_path + "deployed"
+	deployed_file := local_path + DEPLOYED_FILE
 
 	if base.FileExist(deployed_file) == true {
 		err = fmt.Errorf("dot: The \"%v\" is already a block", local_path)
 		return
 	} else {
-		f_byte := []byte("Have Deployed")
+		f_byte := []byte(DEPLOYED_FILE_CONTENT)
 		ioutil.WriteFile(deployed_file, f_byte, 0600)
 	}
 
