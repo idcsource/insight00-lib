@@ -7,9 +7,12 @@ package dot
 
 import (
 	"fmt"
+	"os"
 	"sync"
+	"time"
 
 	"github.com/idcsource/insight00-lib/base"
+	"github.com/idcsource/insight00-lib/iendecode"
 	"github.com/idcsource/insight00-lib/jconf"
 )
 
@@ -51,34 +54,127 @@ func NewDotsOp(path string, name string) (dop *DotsOp, err error) {
 	}
 
 	dop = &DotsOp{
-		path:      path,
-		version:   uint8(b_conf_version),
-		deep:      uint8(b_conf_deep),
-		dots_lock: make(map[string]*sync.RWMutex),
+		path:           path,
+		version:        uint8(b_conf_version),
+		deep:           uint8(b_conf_deep),
+		dots_lock:      make(map[string]*sync.RWMutex),
+		dots_lock_lock: new(sync.RWMutex),
 	}
 	return
 }
 
 // 返回要操作的dot的文件名和路径
-func (dop *DotsOp) findFilePath(id string) (fname string, fpath string) {
-	fpath = dop.path
-	for i := 0; i < int(dop.deep); i++ {
-		fpath = fpath + string(id[i]) + "/"
+func (dop *DotsOp) findFilePath(id string) (fname string, fpath string, err error) {
+	if len([]byte(id)) > 255 {
+		err = fmt.Errorf("dot: The dot id length must less than 255: \"%v\"", id)
+		return
 	}
 	fname = base.GetSha1Sum(id)
+	fpath = dop.path
+	for i := 0; i < int(dop.deep); i++ {
+		fpath = fpath + string(fname[i]) + "/"
+	}
+
+	return
+}
+
+func (dop *DotsOp) idToByte255(id string) (b []byte) {
+	id_b := []byte(id)
+
+	b = make([]byte, 255)
+	for i := 0; i < len(id_b); i++ {
+		b[i] = id[i]
+	}
+	return
+}
+
+func (dop *DotsOp) byte255ToId(b []byte) (id string) {
+	var id_b []byte
+	for j := 0; j < 255; j++ {
+		if b[j] != 0 {
+			id_b = append(id_b, b[j])
+		}
+	}
+	id = string(id_b)
 	return
 }
 
 // 新建一个只有数据的dot
 func (dop *DotsOp) NewDot(id string, data []byte) (err error) {
-	fname, fpath := dop.findFilePath(id)
+	fname, fpath, err := dop.findFilePath(id)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	fmt.Println(fpath)
 	fname_data := fname + DOT_FILE_NAME_DATA
-	//fname_context := fname + DOT_FILE_NAME_CONTEXT
+	fname_context := fname + DOT_FILE_NAME_CONTEXT
 	ishave := base.FileExist(fpath + fname_data)
 	if ishave == true {
 		err = fmt.Errorf("dot: The dot id \"%v\" already have.", id)
 		return
 	}
+
+	// 加锁
+	dop.dots_lock_lock.Lock()
+	dop.dots_lock[fname] = new(sync.RWMutex)
+	dop.dots_lock[fname].Lock()
+	dop.dots_lock_lock.Unlock()
+	// 函数退出的解锁
+	defer func() {
+		dop.dots_lock_lock.Lock()
+		dop.dots_lock[fname].Unlock()
+		delete(dop.dots_lock, fname)
+		dop.dots_lock_lock.Unlock()
+	}()
+
+	optime := time.Now()
+	optime_b, _ := optime.MarshalBinary()                           // 操作时间，15的长度
+	dotversion_b := iendecode.Uint8ToBytes(DOT_NOW_DEFAULT_VERSION) // dot程序版本
+	opversion_b := iendecode.Uint64ToBytes(1)                       // 操作版本
+
+	// 打开文件写入
+	dop_data_f, err := os.OpenFile(fpath+fname_data, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	defer dop_data_f.Close()
+	dop_context_f, err := os.OpenFile(fpath+fname_context, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	defer dop_context_f.Close()
+
+	// 开始写
+	var i int
+	i, err = dop_data_f.Write(dotversion_b) // 应用版本
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	i, err = dop_data_f.Write(dop.idToByte255(id)) // ID
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	i, err = dop_data_f.Write(optime_b) // 时间
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	i, err = dop_data_f.Write(opversion_b) // 操作版本
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	i, err = dop_data_f.Write(data) // 数据
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+
 	return
 }
 
