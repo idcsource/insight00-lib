@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/idcsource/insight00-lib/base"
+	"github.com/idcsource/insight00-lib/jconf"
 )
 
 // 初始化一个块（block）的结构，用来存储dot
@@ -39,7 +40,17 @@ func InitBlock(path string, name string, deep uint8) (err error) {
 		err = fmt.Errorf("dot: The \"%v\" is already a block", local_path)
 		return
 	} else {
-		f_byte := []byte(DEPLOYED_FILE_CONTENT)
+		// 准备block的配置文件
+		b_conf := jconf.NewJsonConf()
+		b_conf.AddValueInRoot("version", BLOCK_NOW_DEFAULT_VERSION)
+		b_conf.AddValueInRoot("deep", deep)
+		var b_conf_j string
+		b_conf_j, err = b_conf.OutputJson()
+		if err != nil {
+			err = fmt.Errorf("dot: %v", err)
+			return
+		}
+		f_byte := []byte(b_conf_j)
 		ioutil.WriteFile(deployed_file, f_byte, 0600)
 	}
 
