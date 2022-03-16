@@ -16,7 +16,7 @@ import (
 	"github.com/idcsource/insight00-lib/base"
 )
 
-func NewJsonConf() (jsonconf *JsonConf, err error) {
+func NewJsonConf() (jsonconf *JsonConf) {
 	jsonconf = &JsonConf{
 		json: make(map[string]interface{}),
 	}
