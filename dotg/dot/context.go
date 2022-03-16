@@ -19,6 +19,14 @@ type Context struct {
 	Down map[string]string // 上下文的下游ID
 }
 
+func NewContext() (c *Context) {
+	c = &Context{
+		Up:   "",
+		Down: make(map[string]string),
+	}
+	return
+}
+
 func (c *Context) MarshalBinary() (data []byte, err error) {
 	b_buf := bytes.Buffer{}
 

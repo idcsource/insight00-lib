@@ -147,29 +147,60 @@ func (dop *DotsOp) NewDot(id string, data []byte) (err error) {
 	}
 	defer dop_context_f.Close()
 
-	// 开始写
-	var i int
-	i, err = dop_data_f.Write(dotversion_b) // 应用版本
+	// 开始写data文件
+	_, err = dop_data_f.Write(dotversion_b) // 应用版本
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
 	}
-	i, err = dop_data_f.Write(dop.idToByte255(id)) // ID
+	_, err = dop_data_f.Write(dop.idToByte255(id)) // ID
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
 	}
-	i, err = dop_data_f.Write(optime_b) // 时间
+	_, err = dop_data_f.Write(optime_b) // 时间
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
 	}
-	i, err = dop_data_f.Write(opversion_b) // 操作版本
+	_, err = dop_data_f.Write(opversion_b) // 操作版本
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
 	}
-	i, err = dop_data_f.Write(data) // 数据
+	_, err = dop_data_f.Write(data) // 数据
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	// 开始写context文件
+	context := NewContext()
+	context_b, err := context.MarshalBinary()
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	_, err = dop_context_f.Write(dotversion_b) // 应用版本
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	_, err = dop_context_f.Write(dop.idToByte255(id)) // ID
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	_, err = dop_context_f.Write(optime_b) // 时间
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	_, err = dop_context_f.Write(opversion_b) // 操作版本
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	_, err = dop_context_f.Write(context_b) // 上下文
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
