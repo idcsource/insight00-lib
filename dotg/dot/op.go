@@ -174,8 +174,8 @@ func (dop *DotsOp) NewDot(id string, data []byte) (err error) {
 		return
 	}
 	// 开始写context文件
-	context := NewContext()
-	context_b, err := context.MarshalBinary()
+	context := make(map[string]*Context)
+	context_b, err := ContextMapToByte(context)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
