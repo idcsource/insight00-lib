@@ -15,4 +15,6 @@ const (
 	DOT_FILE_NAME_CONTEXT = "_context"
 
 	DEPLOYED_FILE = "deployed"
+
+	DOT_ID_MAX_LENGTH_V1 = 255 // dot版本号为1的id最大长度
 )
