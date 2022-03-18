@@ -208,7 +208,7 @@ func (dop *DotsOp) NewDot(id string, data []byte) (err error) {
 }
 
 // 新建一个有一条上下文关系的dot
-func (dop *DotsOp) NewDotWithContext(id string, data []byte, contextid string, up string, down map[string]string) (err error) {
+func (dop *DotsOp) NewDotWithContext(id string, data []byte, contextid string, context *Context) (err error) {
 	fname, fpath, err := dop.findFilePath(id)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
@@ -322,10 +322,6 @@ func (dop *DotsOp) NewDotWithContext(id string, data []byte, contextid string, u
 		return
 	}
 	// 开始写context_this文件
-	context := &Context{
-		Up:   up,
-		Down: down,
-	}
 	context_b, err := context.MarshalBinary()
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
@@ -360,7 +356,7 @@ func (dop *DotsOp) NewDotWithContext(id string, data []byte, contextid string, u
 	return
 }
 
-// 删除一个dot
+// （这个要改）删除一个dot
 func (dop *DotsOp) DelDot(id string) (err error) {
 	fname, fpath, err := dop.findFilePath(id)
 	if err != nil {
@@ -390,6 +386,8 @@ func (dop *DotsOp) DelDot(id string) (err error) {
 		//err = fmt.Errorf("dot: Can not find the dot \"%v\".", id)
 		return
 	}
+
+	// TODO 读取context，看有多少个，都要删除
 
 	// 删除文件
 	err = os.Remove(fpath + fname_data)
@@ -504,5 +502,56 @@ func (dop *DotsOp) UpdateData(id string, data []byte) (err error) {
 	// 重新写
 	_, err = dop_data_f.WriteAt(w_b, 1+DOT_ID_MAX_LENGTH_V1)
 
+	return
+}
+
+// 读取数据
+func (dop *DotsOp) ReadData(dotid string) (data []byte, err error) {
+	return
+}
+
+// 更新一个上下文中的Down关系
+func (dop *DotsOp) UpdateOneDown(dotid string, contextid string, downname string, varlue string) (err error) {
+	return
+}
+
+// 更新一个上下文的Up关系
+func (dop *DotsOp) UpdateOneUp(dotid string, contextid string, up string) (err error) {
+	return
+}
+
+// 删除一个上下文中的Down关系
+func (dop *DotsOp) DelOneDown(dotid string, contextid string, downname string) (err error) {
+	return
+}
+
+// 添加一组上下文关系
+func (dop *DotsOp) AddContext(dotid string, contextid string, context *Context) (err error) {
+	return
+}
+
+// 完全更新一组上下文
+func (dop *DotsOp) UpdateContext(dotid string, contextid string, context *Context) (err error) {
+	return
+}
+
+// 删除一组上下文
+func (dop *DotsOp) DelContext(dotid string, contextid string) (err error) {
+	return
+}
+
+// 完整读取一组上下文
+func (dop *DotsOp) ReadContext(dotid string, contextid string) (context *Context, err error) {
+	return
+}
+
+// 读取某个上下文的Up
+func (dop *DotsOp) ReadOneUp(dotid string, contextid string) (up string, err error) {
+	return
+}
+
+// 读取某个上下文的Down的值
+// 如果存在这个contextid，但找不到的这个down，则在have中返回false
+func (dop *DotsOp) ReadOneDown(dotid string, contextid string, downname string) (varlue string, have bool, err error) {
 	return
 }
