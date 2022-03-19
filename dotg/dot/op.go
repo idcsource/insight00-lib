@@ -99,6 +99,44 @@ func (dop *DotsOp) byte255ToId(b []byte) (id string) {
 	return
 }
 
+// 从文件里读取多少以后的全部数据
+func (dop *DotsOp) readAfter(m int64, fname string) (b []byte, len int64, err error) {
+	f, err := os.Open(fname)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+
+	var size int64
+	if info, err := f.Stat(); err == nil {
+		size = info.Size()
+	}
+	len = size - m
+	if len <= 0 {
+		b = make([]byte, 0)
+		return
+	}
+	b = make([]byte, len)
+	_, err = f.ReadAt(b, m)
+	return
+}
+
+// 从文件里读取多少以后的全部数据
+func (dop *DotsOp) readAfterWithFile(m int64, f os.File) (b []byte, len int64, err error) {
+	var size int64
+	if info, err := f.Stat(); err == nil {
+		size = info.Size()
+	}
+	len = size - m
+	if len <= 0 {
+		b = make([]byte, 0)
+		return
+	}
+	b = make([]byte, len)
+	_, err = f.ReadAt(b, m)
+	return
+}
+
 // 新建一个只有数据的dot
 func (dop *DotsOp) NewDot(id string, data []byte) (err error) {
 	fname, fpath, err := dop.findFilePath(id)
@@ -387,7 +425,29 @@ func (dop *DotsOp) DelDot(id string) (err error) {
 		return
 	}
 
-	// TODO 读取context，看有多少个，都要删除
+	// 读取context，看有多少个，都要删除
+	context_b, context_b_l, err := dop.readAfter(1+15+8, fpath+fname_context)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	if context_b_l != 0 {
+		var context interface{}
+		context, err = iendecode.BytesToSlice("[]string", context_b)
+		if err != nil {
+			err = fmt.Errorf("dot: %v", err)
+			return
+		}
+		context_s := context.([]string)
+		for i := range context_s {
+			the_c_name := fname_context + "_" + base.GetSha1Sum(context_s[i])
+			err = os.Remove(fpath + the_c_name)
+			if err != nil {
+				err = fmt.Errorf("dot: %v", err)
+				return
+			}
+		}
+	}
 
 	// 删除文件
 	err = os.Remove(fpath + fname_data)
@@ -553,5 +613,17 @@ func (dop *DotsOp) ReadOneUp(dotid string, contextid string) (up string, err err
 // 读取某个上下文的Down的值
 // 如果存在这个contextid，但找不到的这个down，则在have中返回false
 func (dop *DotsOp) ReadOneDown(dotid string, contextid string, downname string) (varlue string, have bool, err error) {
+	return
+}
+
+func (dop *DotsOp) ReadDataTimeVersion(dotid string) (t time.Time, v uint8, err error) {
+	return
+}
+
+func (dop *DotsOp) ReadContextIndexTimeVersion(dotid string) (t time.Time, v uint8, err error) {
+	return
+}
+
+func (dop *DotsOp) ReadContextTimeVersion(dotid string, contextid string) (t time.Time, v uint8, err error) {
 	return
 }
