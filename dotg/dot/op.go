@@ -122,7 +122,7 @@ func (dop *DotsOp) readAfter(m int64, fname string) (b []byte, len int64, err er
 }
 
 // 从文件里读取多少以后的全部数据
-func (dop *DotsOp) readAfterWithFile(m int64, f os.File) (b []byte, len int64, err error) {
+func (dop *DotsOp) readAfterWithFile(m int64, f *os.File) (b []byte, len int64, err error) {
 	var size int64
 	if info, err := f.Stat(); err == nil {
 		size = info.Size()
@@ -148,7 +148,9 @@ func (dop *DotsOp) NewDot(id string, data []byte) (err error) {
 
 	// 加锁
 	dop.dots_lock_lock.Lock()
-	dop.dots_lock[fname] = new(sync.RWMutex)
+	if _, have := dop.dots_lock[fname]; have != true {
+		dop.dots_lock[fname] = new(sync.RWMutex)
+	}
 	dop.dots_lock[fname].Lock()
 	dop.dots_lock_lock.Unlock()
 	// 函数退出的解锁
@@ -261,7 +263,9 @@ func (dop *DotsOp) NewDotWithContext(id string, data []byte, contextid string, c
 
 	// 加锁
 	dop.dots_lock_lock.Lock()
-	dop.dots_lock[fname] = new(sync.RWMutex)
+	if _, have := dop.dots_lock[fname]; have != true {
+		dop.dots_lock[fname] = new(sync.RWMutex)
+	}
 	dop.dots_lock[fname].Lock()
 	dop.dots_lock_lock.Unlock()
 	// 函数退出的解锁
@@ -404,7 +408,9 @@ func (dop *DotsOp) DelDot(id string) (err error) {
 
 	// 加锁
 	dop.dots_lock_lock.Lock()
-	dop.dots_lock[fname] = new(sync.RWMutex)
+	if _, have := dop.dots_lock[fname]; have != true {
+		dop.dots_lock[fname] = new(sync.RWMutex)
+	}
 	dop.dots_lock[fname].Lock()
 	dop.dots_lock_lock.Unlock()
 	// 函数退出的解锁
@@ -475,7 +481,9 @@ func (dop *DotsOp) UpdateData(id string, data []byte) (err error) {
 
 	// 加写锁
 	dop.dots_lock_lock.Lock()
-	dop.dots_lock[fname] = new(sync.RWMutex)
+	if _, have := dop.dots_lock[fname]; have != true {
+		dop.dots_lock[fname] = new(sync.RWMutex)
+	}
 	dop.dots_lock[fname].Lock()
 	dop.dots_lock_lock.Unlock()
 	// 函数退出的解锁
@@ -566,7 +574,44 @@ func (dop *DotsOp) UpdateData(id string, data []byte) (err error) {
 }
 
 // 读取数据
-func (dop *DotsOp) ReadData(dotid string) (data []byte, err error) {
+func (dop *DotsOp) ReadData(dotid string) (data []byte, len int64, err error) {
+	fname, fpath, err := dop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	fmt.Println(fpath)
+
+	// 加读锁
+	dop.dots_lock_lock.Lock()
+	if _, have := dop.dots_lock[fname]; have != true {
+		dop.dots_lock[fname] = new(sync.RWMutex)
+	}
+	dop.dots_lock[fname].RLock()
+	dop.dots_lock_lock.Unlock()
+	// 函数退出的解锁
+	defer func() {
+		dop.dots_lock_lock.Lock()
+		dop.dots_lock[fname].RUnlock()
+		delete(dop.dots_lock, fname)
+		dop.dots_lock_lock.Unlock()
+	}()
+
+	// 打开文件
+	fname_data := fname + DOT_FILE_NAME_DATA
+	ishave := base.FileExist(fpath + fname_data)
+	// 如果不存在就返回错误
+	if ishave != true {
+		err = fmt.Errorf("dot: Can not find the dot \"%v\".", dotid)
+		return
+	}
+	f, err := os.OpenFile(fpath+fname_data, os.O_RDONLY, 0666)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	data, len, err = dop.readAfterWithFile(1+DOT_ID_MAX_LENGTH_V1+15+8, f)
+
 	return
 }
 
@@ -616,14 +661,188 @@ func (dop *DotsOp) ReadOneDown(dotid string, contextid string, downname string) 
 	return
 }
 
-func (dop *DotsOp) ReadDataTimeVersion(dotid string) (t time.Time, v uint8, err error) {
+// 获得Data体中的日期和操作版本
+func (dop *DotsOp) ReadDataTimeVersion(dotid string) (t time.Time, v uint64, err error) {
+	fname, fpath, err := dop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	fmt.Println(fpath)
+
+	// 加读锁
+	dop.dots_lock_lock.Lock()
+	if _, have := dop.dots_lock[fname]; have != true {
+		dop.dots_lock[fname] = new(sync.RWMutex)
+	}
+	dop.dots_lock[fname].RLock()
+	dop.dots_lock_lock.Unlock()
+	// 函数退出的解锁
+	defer func() {
+		dop.dots_lock_lock.Lock()
+		dop.dots_lock[fname].RUnlock()
+		delete(dop.dots_lock, fname)
+		dop.dots_lock_lock.Unlock()
+	}()
+
+	// 打开文件
+	fname_data := fname + DOT_FILE_NAME_DATA
+	ishave := base.FileExist(fpath + fname_data)
+	// 如果不存在就返回错误
+	if ishave != true {
+		err = fmt.Errorf("dot: Can not find the dot \"%v\".", dotid)
+		return
+	}
+	f, err := os.OpenFile(fpath+fname_data, os.O_RDONLY, 0666)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+
+	time_b := make([]byte, 15)
+	version_b := make([]byte, 8)
+
+	_, err = f.ReadAt(time_b, 1+DOT_ID_MAX_LENGTH_V1)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	_, err = f.ReadAt(version_b, 1+DOT_ID_MAX_LENGTH_V1+15)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+
+	err = t.UnmarshalBinary(time_b)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	v = iendecode.BytesToUint64(version_b)
+
 	return
 }
 
-func (dop *DotsOp) ReadContextIndexTimeVersion(dotid string) (t time.Time, v uint8, err error) {
+// 获得Context索引体中的日期和操作版本
+func (dop *DotsOp) ReadContextIndexTimeVersion(dotid string) (t time.Time, v uint64, err error) {
+	fname, fpath, err := dop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	fmt.Println(fpath)
+
+	// 加读锁
+	dop.dots_lock_lock.Lock()
+	if _, have := dop.dots_lock[fname]; have != true {
+		dop.dots_lock[fname] = new(sync.RWMutex)
+	}
+	dop.dots_lock[fname].RLock()
+	dop.dots_lock_lock.Unlock()
+	// 函数退出的解锁
+	defer func() {
+		dop.dots_lock_lock.Lock()
+		dop.dots_lock[fname].RUnlock()
+		delete(dop.dots_lock, fname)
+		dop.dots_lock_lock.Unlock()
+	}()
+
+	// 打开文件
+	fname_context := fname + DOT_FILE_NAME_CONTEXT
+	ishave := base.FileExist(fpath + fname_context)
+	// 如果不存在就返回错误
+	if ishave != true {
+		err = fmt.Errorf("dot: Can not find the dot \"%v\".", dotid)
+		return
+	}
+	f, err := os.OpenFile(fpath+fname_context, os.O_RDONLY, 0666)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+
+	time_b := make([]byte, 15)
+	version_b := make([]byte, 8)
+
+	_, err = f.ReadAt(time_b, 1)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	_, err = f.ReadAt(version_b, 1+15)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+
+	err = t.UnmarshalBinary(time_b)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	v = iendecode.BytesToUint64(version_b)
+
 	return
 }
 
-func (dop *DotsOp) ReadContextTimeVersion(dotid string, contextid string) (t time.Time, v uint8, err error) {
+// 获得某个Context体中的日期和操作版本
+func (dop *DotsOp) ReadContextTimeVersion(dotid string, contextid string) (t time.Time, v uint64, err error) {
+	fname, fpath, err := dop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	fmt.Println(fpath)
+
+	// 加读锁
+	dop.dots_lock_lock.Lock()
+	if _, have := dop.dots_lock[fname]; have != true {
+		dop.dots_lock[fname] = new(sync.RWMutex)
+	}
+	dop.dots_lock[fname].RLock()
+	dop.dots_lock_lock.Unlock()
+	// 函数退出的解锁
+	defer func() {
+		dop.dots_lock_lock.Lock()
+		dop.dots_lock[fname].RUnlock()
+		delete(dop.dots_lock, fname)
+		dop.dots_lock_lock.Unlock()
+	}()
+
+	// 打开文件
+	fname_data := fname + DOT_FILE_NAME_CONTEXT + "_" + base.GetSha1Sum(contextid)
+	ishave := base.FileExist(fpath + fname_data)
+	// 如果不存在就返回错误
+	if ishave != true {
+		err = fmt.Errorf("dot: Can not find the dot \"%v\", or can not find the context \"%v\".", dotid, contextid)
+		return
+	}
+	f, err := os.OpenFile(fpath+fname_data, os.O_RDONLY, 0666)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+
+	time_b := make([]byte, 15)
+	version_b := make([]byte, 8)
+
+	_, err = f.ReadAt(time_b, 1+DOT_ID_MAX_LENGTH_V1)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	_, err = f.ReadAt(version_b, 1+DOT_ID_MAX_LENGTH_V1+15)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+
+	err = t.UnmarshalBinary(time_b)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	v = iendecode.BytesToUint64(version_b)
+
 	return
 }
