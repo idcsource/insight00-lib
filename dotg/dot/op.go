@@ -176,13 +176,13 @@ func (dop *DotsOp) NewDot(id string, data []byte) (err error) {
 	opversion_b := iendecode.Uint64ToBytes(1)                       // 操作版本
 
 	// 打开文件写入
-	dop_data_f, err := os.OpenFile(fpath+fname_data, os.O_WRONLY|os.O_CREATE, 0666)
+	dop_data_f, err := os.OpenFile(fpath+fname_data, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
 	}
 	defer dop_data_f.Close()
-	dop_context_f, err := os.OpenFile(fpath+fname_context, os.O_WRONLY|os.O_CREATE, 0666)
+	dop_context_f, err := os.OpenFile(fpath+fname_context, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
@@ -291,19 +291,19 @@ func (dop *DotsOp) NewDotWithContext(id string, data []byte, contextid string, c
 	opversion_b := iendecode.Uint64ToBytes(1)                       // 操作版本
 
 	// 打开文件写入
-	dop_data_f, err := os.OpenFile(fpath+fname_data, os.O_WRONLY|os.O_CREATE, 0666)
+	dop_data_f, err := os.OpenFile(fpath+fname_data, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
 	}
 	defer dop_data_f.Close()
-	dop_context_f, err := os.OpenFile(fpath+fname_context, os.O_WRONLY|os.O_CREATE, 0666)
+	dop_context_f, err := os.OpenFile(fpath+fname_context, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
 	}
 	defer dop_context_f.Close()
-	dop_context_this_f, err := os.OpenFile(fpath+fname_context_this, os.O_WRONLY|os.O_CREATE, 0666)
+	dop_context_this_f, err := os.OpenFile(fpath+fname_context_this, os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
@@ -505,7 +505,7 @@ func (dop *DotsOp) UpdateData(id string, data []byte) (err error) {
 	}
 
 	// 打开数据文件写入
-	dop_data_f, err := os.OpenFile(fpath+fname_data, os.O_RDWR, 0666)
+	dop_data_f, err := os.OpenFile(fpath+fname_data, os.O_RDWR, 0600)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
@@ -605,7 +605,7 @@ func (dop *DotsOp) ReadData(dotid string) (data []byte, len int64, err error) {
 		err = fmt.Errorf("dot: Can not find the dot \"%v\".", dotid)
 		return
 	}
-	f, err := os.OpenFile(fpath+fname_data, os.O_RDONLY, 0666)
+	f, err := os.OpenFile(fpath+fname_data, os.O_RDONLY, 0600)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
@@ -693,7 +693,7 @@ func (dop *DotsOp) ReadDataTimeVersion(dotid string) (t time.Time, v uint64, err
 		err = fmt.Errorf("dot: Can not find the dot \"%v\".", dotid)
 		return
 	}
-	f, err := os.OpenFile(fpath+fname_data, os.O_RDONLY, 0666)
+	f, err := os.OpenFile(fpath+fname_data, os.O_RDONLY, 0600)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
@@ -755,7 +755,7 @@ func (dop *DotsOp) ReadContextIndexTimeVersion(dotid string) (t time.Time, v uin
 		err = fmt.Errorf("dot: Can not find the dot \"%v\".", dotid)
 		return
 	}
-	f, err := os.OpenFile(fpath+fname_context, os.O_RDONLY, 0666)
+	f, err := os.OpenFile(fpath+fname_context, os.O_RDONLY, 0600)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
@@ -817,7 +817,7 @@ func (dop *DotsOp) ReadContextTimeVersion(dotid string, contextid string) (t tim
 		err = fmt.Errorf("dot: Can not find the dot \"%v\", or can not find the context \"%v\".", dotid, contextid)
 		return
 	}
-	f, err := os.OpenFile(fpath+fname_data, os.O_RDONLY, 0666)
+	f, err := os.OpenFile(fpath+fname_data, os.O_RDONLY, 0600)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
 		return
