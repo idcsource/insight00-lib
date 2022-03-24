@@ -25,12 +25,29 @@ const (
 	USER_AUTHORITY_ADMIN                       // 管理员权限
 	USER_AUTHORITY_NORMAL                      // 普通权限
 
-	OPERATE_TYPE_NO        OperateType = iota // 操作状态，没有状态
-	OPERATE_TYPE_LOGIN                        // 登陆
-	OPERATE_TYPE_KEEPLIVE                     // 续期
-	OPERATE_TYPE_PASSWORD                     // 修改密码
-	OPERATE_TYPE_NEW_USER                     // 添加用户
-	OPERATE_TYPE_DEL_USER                     // 删除用户
-	OPERATE_TYPE_NEW_BLOCK                    // 新增Block
-	OPERATE_TYPE_DEL_BLOCK                    // 删除Block
+	OPERATE_TYPE_NO                   OperateType = iota // 操作状态，没有状态
+	OPERATE_TYPE_LOGIN                                   // 登陆
+	OPERATE_TYPE_KEEPLIVE                                // 续期
+	OPERATE_TYPE_PASSWORD                                // 修改密码
+	OPERATE_TYPE_NEW_USER                                // 添加用户
+	OPERATE_TYPE_DEL_USER                                // 删除用户
+	OPERATE_TYPE_NEW_BLOCK                               // 新增Block
+	OPERATE_TYPE_DEL_BLOCK                               // 删除Block
+	OPERATE_TYPE_NEW_DOT                                 // 新建dot
+	OPERATE_TYPE_NEW_DOT_WITH_CONTEXT                    // 新建包含一个上下关系的dot
+	OPERATE_TYPE_DEL_DOT                                 // 删除dot
+	OPERATE_TYPE_UPDATE_DATA                             // 更新数据
+	OPERATE_TYPE_READ_DATA                               // 读取数据
+	OPERATE_TYPE_UPDATE_ONE_DOWN                         // 更新一个down
+	OPERATE_TYPE_UPDATE_ONE_UP                           // 更新一个up
+	OPERATE_TYPE_DEL_ONE_DOWN                            // 删除一个down
+	OPERATE_TYPE_ADD_CONTEXT                             // 添加一个context
+	OPERATE_TYPE_UPDATE_CONTEXT                          // 完整更新一个context
+	OPERATE_TYPE_DEL_CONTEXT                             // 删除一个完整context
+	OPERATE_TYPE_READ_CONTEXT                            // 读一个完整的context
+	OPERATE_TYPE_READ_ONE_UP                             // 读一个up
+	OPERATE_TYPE_READ_ONE_DOWN                           // 读一个down
+	OPERATE_TYPE_READ_DATA_TV                            // 读data的time和version
+	OPERATE_TYPE_READ_INDEX_TV                           // 读context索引的time和version
+	OPERATE_TYPE_READ_CONTEXT_TV                         // 读某个context的time和version
 )
