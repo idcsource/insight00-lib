@@ -1164,6 +1164,60 @@ func (dop *DotsOp) UpdateOneUpT(dotid string, contextid string, up string, optim
 	return
 }
 
+// 完整读取一组上下文
+func (dop *DotsOp) ReadContextB(dotid string, contextid string) (con_b []byte, err error) {
+	fname, fpath, err := dop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	fmt.Println(fpath)
+
+	// 加读锁
+	dop.dots_lock_lock.Lock()
+	if _, have := dop.dots_lock[fname]; have != true {
+		dop.dots_lock[fname] = new(sync.RWMutex)
+	}
+	dop.dots_lock[fname].RLock()
+	dop.dots_lock_lock.Unlock()
+	// 函数退出的解锁
+	defer func() {
+		dop.dots_lock_lock.Lock()
+		dop.dots_lock[fname].RUnlock()
+		delete(dop.dots_lock, fname)
+		dop.dots_lock_lock.Unlock()
+	}()
+
+	// 找有没有文件
+	fname_one_context := fname + DOT_FILE_NAME_CONTEXT + "_" + base.GetSha1Sum(contextid)
+	ishave := base.FileExist(fpath + fname_one_context)
+	if ishave != true {
+		err = fmt.Errorf("dot: Can not find the dot \"%v\", or can not find the context \"%v\".", dotid, contextid)
+		return
+	}
+
+	// 打开文件
+	f, err := os.OpenFile(fpath+fname_one_context, os.O_RDONLY, 0600)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	defer f.Close()
+
+	// 读取这个context的结构体
+	con_b, len, err := dop.readAfterWithFile(1+DOT_ID_MAX_LENGTH_V1+15+8, f)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	if len == 0 {
+		err = fmt.Errorf("dot: The context have some error.")
+		return
+	}
+
+	return
+}
+
 // 获得Context索引体中的日期和操作版本
 func (dop *DotsOp) ReadContextIndexTimeVersionB(dotid string) (time_b []byte, version_b []byte, err error) {
 	fname, fpath, err := dop.findFilePath(dotid)
