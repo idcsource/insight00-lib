@@ -16,11 +16,11 @@ Web管理界面、Web Service接口将在其他package中提供。
 
 3.创建名为allblock的dot，在数据体中用[]string的方式存放area中所有的block名。
 
-4.创建名为alluser的dot，在数据体中用[]string的方式记录所有用户的用户名。
+4.创建名为alluser的dot，并创建一个alluser的context，up为空，down对应每一个用户。
 
-5.创建默认的用户，dot的id为user_用户名，数据体中记录：
+5.创建默认的用户，dot的id为user_用户名，数据体中记录：40位长密码散列 | uint8的权限类型，1为管理员，2为一般
 
-	40位长密码散列 | uint8的权限类型，1为管理员，2为一般 | 如果权限类型为2,则用[]string记录所有具有管理权限的block名
+6.如果新增加用户不是管理员，则创建名为block的context，up为空，down为拥有权限的block名
 
 ## dota服务器端配置文件示例
 

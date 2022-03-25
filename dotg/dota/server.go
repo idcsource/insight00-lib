@@ -7,6 +7,7 @@ package dota
 
 import (
 	"sync"
+	"time"
 
 	"github.com/idcsource/insight00-lib/dotg/dot"
 	"github.com/idcsource/insight00-lib/logs"
@@ -31,7 +32,7 @@ type Server struct {
 type logedUser struct {
 	username  string
 	unid      map[string]time.Time // string为unid，time则为活动时间，目的是一个用户可以多次登陆
-	authority UserAuthority        // 用户权限，管理员还是一般
+	authority uint8                // 用户权限，管理员还是一般
 	wrable    map[string]bool      // string是能访问的block的名字
 	lock      *sync.RWMutex        // 锁，当修改unid的时候
 }
