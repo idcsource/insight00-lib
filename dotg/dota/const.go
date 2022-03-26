@@ -19,11 +19,14 @@ const (
 	DEFAULT_BLOCK_DEEP     uint8 = 2                       // 默认的block结构深度
 	DEFAULT_RUN_LOG              = "/var/log/dota_run.log" // 默认运行日志位置
 	DEFAULT_ERR_LOG              = "/var/log/dota_err.log" // 默认错误日志位置
+	CLIENT_KEEPLIVE_TIME   int   = 900                     // 客户端续期时间，默认是15分钟，也就是900秒
+	SERVER_OUTLOG_TIME     int   = 1800                    // 服务端认为客户端多久没有活动就要重新登录，默认是30分钟，也就是1800秒
 
 	USER_AUTHORITY_NO     uint8 = iota // 没有权限
 	USER_AUTHORITY_ADMIN               // 管理员权限
 	USER_AUTHORITY_NORMAL              // 普通权限
 
+	// 客户端请求服务端的操作
 	OPERATE_TYPE_NO                   uint8 = iota // 操作状态，没有状态
 	OPERATE_TYPE_LOGIN                             // 登陆
 	OPERATE_TYPE_KEEPLIVE                          // 续期
@@ -49,4 +52,16 @@ const (
 	OPERATE_TYPE_READ_DATA_TV                      // 读data的time和version
 	OPERATE_TYPE_READ_INDEX_TV                     // 读context索引的time和version
 	OPERATE_TYPE_READ_CONTEXT_TV                   // 读某个context的time和version
+
+	// 服务端返回给客户端的状态
+	OPERATE_RETURN_NO               uint8 = iota // 操作的返回状态，没有状态
+	OPERATE_RETURN_TYPE_NOT_HAVE                 // 请求的操作不存在
+	OPERATE_RETURN_TYPE_FORMAT_ERR               // 请求的操作格式错误
+	OPERATE_RETURN_LOGIN_OK                      // 成功登陆，后面将跟服务器返回的uuid
+	OPERATE_RETURN_PASSWD_NO                     // 用户名或密码错误
+	OPERATE_RETURN_LOGIN_NO                      // 没有登陆，客户端应该赶紧重新发起登录
+	OPERATE_RETURN_KEEPLIVE_OK                   // 续期成功
+	OPERATE_RETURN_ALL_OK                        // 操作都没问题
+	OPERATE_RETURN_ALL_OK_WITH_DATA              // 操作都OK，并带有返回数据
+	OPERATE_RETURN_ERROR                         // 操作错误，这个必定带有返回数据
 )

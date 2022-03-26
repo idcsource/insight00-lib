@@ -11,7 +11,7 @@ import (
 	"github.com/idcsource/insight00-lib/iendecode"
 )
 
-// 用户的密码和权限类型数据
+// 用户的密码和权限类型数据，这个是在server内使用的
 type Admin_PassWd_Power struct {
 	Password  string // 密码的sha1
 	PowerType uint8  // 用户权限
