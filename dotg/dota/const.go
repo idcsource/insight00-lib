@@ -28,10 +28,12 @@ const (
 
 	// 客户端请求服务端的操作
 	OPERATE_TYPE_NO                   uint8 = iota // 操作状态，没有状态
-	OPERATE_TYPE_LOGIN                             // 登陆
-	OPERATE_TYPE_KEEPLIVE                          // 续期
-	OPERATE_TYPE_PASSWORD                          // 修改密码
-	OPERATE_TYPE_NEW_USER                          // 添加用户
+	OPERATE_TYPE_LOGIN                             // 登陆，使用ns包中的To_Login
+	OPERATE_TYPE_KEEPLIVE                          // 续期，直接发送ns包中的Login_Base_Info
+	OPERATE_TYPE_CHANGE_PASSWORD                   // 修改密码，使用ns包中的Change_Password
+	OPERATE_TYPE_NEW_USER                          // 添加用户，使用ns包中的Admin_PassWd_Power，这个也是用户dot的数据体
+	OPERATE_TYPE_USER_ADD_BLOCK                    // 给用户增加一个bock权限
+	OPERATE_TYPE_USER_DEL_BLOCK                    // 给用户减一个block权限
 	OPERATE_TYPE_DEL_USER                          // 删除用户
 	OPERATE_TYPE_NEW_BLOCK                         // 新增Block
 	OPERATE_TYPE_DEL_BLOCK                         // 删除Block

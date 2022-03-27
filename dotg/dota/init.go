@@ -13,6 +13,7 @@ import (
 
 	"github.com/idcsource/insight00-lib/base"
 	"github.com/idcsource/insight00-lib/dotg/dot"
+	"github.com/idcsource/insight00-lib/dotg/ns"
 	"github.com/idcsource/insight00-lib/iendecode"
 )
 
@@ -79,7 +80,8 @@ func InitArea(path string) (err error) {
 		return
 	}
 	// 准备默认的admin
-	admin_data := &Admin_PassWd_Power{
+	admin_data := &ns.Admin_PassWd_Power{
+		Name:      DEFAULT_ADMIN_USER,
 		Password:  base.GetSha1Sum(DEFAULT_ADMIN_PASSWORD),
 		PowerType: USER_AUTHORITY_ADMIN,
 	}

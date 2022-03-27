@@ -3,24 +3,38 @@
 // Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
 // This source code is governed by GNU LGPL v3 license
 
-package dota
+package ns
 
 import (
-	"fmt"
+	"bytes"
 
 	"github.com/idcsource/insight00-lib/iendecode"
 )
 
 // 用户的密码和权限类型数据，这个是在server内使用的
 type Admin_PassWd_Power struct {
+	Name      string // 用户名
 	Password  string // 密码的sha1
 	PowerType uint8  // 用户权限
 }
 
 func (app *Admin_PassWd_Power) MarshalBinary() (data []byte, err error) {
-	pwd_sha1_b := []byte(app.Password)
-	power_b := iendecode.Uint8ToBytes(app.PowerType)
-	data = append(pwd_sha1_b, power_b...)
+	var buf bytes.Buffer
+
+	name_b := []byte(app.Name)
+	name_b_len := len(name_b)
+	name_b_len_b := iendecode.Uint64ToBytes(uint64(name_b_len))
+	buf.Write(name_b_len_b)
+	buf.Write(name_b)
+
+	password_b := []byte(app.Password)
+	buf.Write(password_b)
+
+	pt_b := iendecode.Uint8ToBytes(app.PowerType)
+	buf.Write(pt_b)
+
+	data = buf.Bytes()
+
 	return
 }
 
@@ -31,13 +45,18 @@ func (app *Admin_PassWd_Power) UnmarshalBinary(data []byte) (err error) {
 		}
 	}()
 
-	if len(data) != 41 {
-		err = fmt.Errorf("This is not a Admin_PassWd_Power")
-		return
-	}
-	pwd_sha1_b := data[0:40]
-	app.Password = string(pwd_sha1_b)
-	power := iendecode.BytesToUint8(data[40:41])
-	app.PowerType = power
+	buf := bytes.NewBuffer(data)
+
+	name_b_len_b := buf.Next(8)
+	name_b_len := iendecode.BytesToUint64(name_b_len_b)
+	name_b := buf.Next(int(name_b_len))
+	app.Name = string(name_b)
+
+	password_b := buf.Next(40)
+	app.Password = string(password_b)
+
+	pt_b := buf.Next(1)
+	app.PowerType = iendecode.BytesToUint8(pt_b)
+
 	return
 }
