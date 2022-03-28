@@ -37,8 +37,8 @@ const (
 	OPERATE_TYPE_DEL_USER                          // 删除用户，直接加用户名
 	OPERATE_TYPE_NEW_BLOCK                         // 新增Block，直接加block名
 	OPERATE_TYPE_DEL_BLOCK                         // 删除Block，直接加block名
-	OPERATE_TYPE_NEW_DOT                           // 新建dot
-	OPERATE_TYPE_NEW_DOT_WITH_CONTEXT              // 新建包含一个上下关系的dot
+	OPERATE_TYPE_NEW_DOT                           // 新建dot，使用ns包中的A_Dot_With_A_Context
+	OPERATE_TYPE_NEW_DOT_WITH_CONTEXT              // 新建包含一个上下关系的dot，，使用ns包中的A_Dot_With_A_Context
 	OPERATE_TYPE_DEL_DOT                           // 删除dot，直接加dot的名字
 	OPERATE_TYPE_UPDATE_DATA                       // 更新数据
 	OPERATE_TYPE_READ_DATA                         // 读取数据

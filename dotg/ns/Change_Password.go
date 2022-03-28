@@ -13,7 +13,7 @@ import (
 
 // 这是dota客户端进行登陆的数据结构
 type Change_Password struct {
-	LoginInfo   *Login_Base_Info
+	UserName    string // 用户名
 	OldPassword string // sha1之后的老密码
 	NewPassword string // Sha1之后的新密码
 }
@@ -21,15 +21,11 @@ type Change_Password struct {
 func (c *Change_Password) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	login_info_b, err := c.LoginInfo.MarshalBinary()
-	if err != nil {
-		return
-	}
-	login_info_b_len := len(login_info_b)
-	login_info_b_len_b := iendecode.Uint64ToBytes(uint64(login_info_b_len)) // 8位的长度
-
-	buf.Write(login_info_b_len_b)
-	buf.Write(login_info_b)
+	user_b := []byte(c.UserName)
+	user_b_len := len(user_b)
+	user_b_len_b := iendecode.Uint64ToBytes(uint64(user_b_len))
+	buf.Write(user_b_len_b)
+	buf.Write(user_b)
 
 	oldpassword_b := []byte(c.OldPassword)
 	buf.Write(oldpassword_b)
@@ -50,14 +46,10 @@ func (c *Change_Password) UnmarshalBinary(data []byte) (err error) {
 
 	buf := bytes.NewBuffer(data)
 
-	login_info_b_len_b := buf.Next(8)
-	login_info_b_len := iendecode.BytesToUint64(login_info_b_len_b)
-	login_info_b := buf.Next(int(login_info_b_len))
-	c.LoginInfo = &Login_Base_Info{}
-	err = c.LoginInfo.UnmarshalBinary(login_info_b)
-	if err != nil {
-		return
-	}
+	user_b_len_b := buf.Next(8)
+	user_b_len := iendecode.BytesToUint64(user_b_len_b)
+	user_b := buf.Next(int(user_b_len))
+	c.UserName = string(user_b)
 
 	oldpassword_b := buf.Next(40)
 	c.OldPassword = string(oldpassword_b)
