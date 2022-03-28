@@ -74,13 +74,13 @@ func InitArea(path string) (err error) {
 	// 准备admin索引的dot
 	admin_context := dot.NewContext()
 	admin_context.Down[DEFAULT_ADMIN_USER] = DEFAULT_ADMIN_USER
-	err = op.NewDotWithContext(DEFAULT_ADMIN_INDEX, []byte(DEFAULT_ADMIN_USER), DEFAULT_ADMIN_CONTEXT, admin_context)
+	err = op.NewDotWithContext(DEFAULT_USER_INDEX, []byte(DEFAULT_USER_INDEX), DEFAULT_USER_CONTEXT, admin_context)
 	if err != nil {
 		err = fmt.Errorf("dota: %v", err)
 		return
 	}
 	// 准备默认的admin
-	admin_data := &ns.Admin_PassWd_Power{
+	admin_data := &ns.User_PassWd_Power{
 		Name:      DEFAULT_ADMIN_USER,
 		Password:  base.GetSha1Sum(DEFAULT_ADMIN_PASSWORD),
 		PowerType: USER_AUTHORITY_ADMIN,
@@ -90,7 +90,7 @@ func InitArea(path string) (err error) {
 		err = fmt.Errorf("dota: %v", err)
 		return
 	}
-	err = op.NewDot(DEFAULT_ADMIN_PREFIX+DEFAULT_ADMIN_USER, admin_data_b)
+	err = op.NewDot(DEFAULT_USER_PREFIX+DEFAULT_ADMIN_USER, admin_data_b)
 	if err != nil {
 		err = fmt.Errorf("dota: %v", err)
 		return

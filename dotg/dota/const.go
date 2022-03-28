@@ -11,9 +11,9 @@ const (
 	DEFAULT_AREA_BLOCK           = "dota"                  // 默认的提供给Dot-Area使用的block
 	DEFAULT_BLOCK_INDEX          = "allblock"              // 在默认区里存放其他所有存在的block索引名称的dot
 	DEFAULT_BLOCK_PREFIX         = "block_"                // block的dot的前缀
-	DEFAULT_ADMIN_INDEX          = "alladmin"              // 在默认区里存放所有用户名的dot
-	DEFAULT_ADMIN_CONTEXT        = "alladmin"              // 在用户索引里，保存用户关系的上下文
-	DEFAULT_ADMIN_PREFIX         = "admin_"                // 用户dot的前缀
+	DEFAULT_USER_INDEX           = "alluser"               // 在默认区里存放所有用户名的dot
+	DEFAULT_USER_CONTEXT         = "alluser"               // 在用户索引里，保存用户关系的上下文
+	DEFAULT_USER_PREFIX          = "user_"                 // 用户dot的前缀
 	DEFAULT_ADMIN_USER           = "insight00"             // 默认的管理员账户，不一定用到
 	DEFAULT_ADMIN_PASSWORD       = "insight00"             // 默认的管理员密码，不一定用到
 	DEFAULT_BLOCK_DEEP     uint8 = 2                       // 默认的block结构深度
@@ -31,15 +31,15 @@ const (
 	OPERATE_TYPE_LOGIN                             // 登陆，使用ns包中的To_Login
 	OPERATE_TYPE_KEEPLIVE                          // 续期，直接发送ns包中的Login_Base_Info
 	OPERATE_TYPE_CHANGE_PASSWORD                   // 修改密码，使用ns包中的Change_Password
-	OPERATE_TYPE_NEW_USER                          // 添加用户，使用ns包中的Admin_PassWd_Power，这个也是用户dot的数据体
-	OPERATE_TYPE_USER_ADD_BLOCK                    // 给用户增加一个bock权限
-	OPERATE_TYPE_USER_DEL_BLOCK                    // 给用户减一个block权限
-	OPERATE_TYPE_DEL_USER                          // 删除用户
-	OPERATE_TYPE_NEW_BLOCK                         // 新增Block
-	OPERATE_TYPE_DEL_BLOCK                         // 删除Block
+	OPERATE_TYPE_NEW_USER                          // 添加用户，使用ns包中的User_PassWd_Power，这个也是用户dot的数据体
+	OPERATE_TYPE_USER_ADD_BLOCK                    // 给用户增加一个bock权限，使用ns包中的User_Block
+	OPERATE_TYPE_USER_DEL_BLOCK                    // 给用户减一个block权限，使用ns包中的User_Block
+	OPERATE_TYPE_DEL_USER                          // 删除用户，直接加用户名
+	OPERATE_TYPE_NEW_BLOCK                         // 新增Block，直接加block名
+	OPERATE_TYPE_DEL_BLOCK                         // 删除Block，直接加block名
 	OPERATE_TYPE_NEW_DOT                           // 新建dot
 	OPERATE_TYPE_NEW_DOT_WITH_CONTEXT              // 新建包含一个上下关系的dot
-	OPERATE_TYPE_DEL_DOT                           // 删除dot
+	OPERATE_TYPE_DEL_DOT                           // 删除dot，直接加dot的名字
 	OPERATE_TYPE_UPDATE_DATA                       // 更新数据
 	OPERATE_TYPE_READ_DATA                         // 读取数据
 	OPERATE_TYPE_UPDATE_ONE_DOWN                   // 更新一个down

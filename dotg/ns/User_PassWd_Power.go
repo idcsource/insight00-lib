@@ -12,25 +12,25 @@ import (
 )
 
 // 用户的密码和权限类型数据，这个是在server内使用的
-type Admin_PassWd_Power struct {
+type User_PassWd_Power struct {
 	Name      string // 用户名
 	Password  string // 密码的sha1
 	PowerType uint8  // 用户权限
 }
 
-func (app *Admin_PassWd_Power) MarshalBinary() (data []byte, err error) {
+func (u *User_PassWd_Power) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
-	name_b := []byte(app.Name)
+	name_b := []byte(u.Name)
 	name_b_len := len(name_b)
 	name_b_len_b := iendecode.Uint64ToBytes(uint64(name_b_len))
 	buf.Write(name_b_len_b)
 	buf.Write(name_b)
 
-	password_b := []byte(app.Password)
+	password_b := []byte(u.Password)
 	buf.Write(password_b)
 
-	pt_b := iendecode.Uint8ToBytes(app.PowerType)
+	pt_b := iendecode.Uint8ToBytes(u.PowerType)
 	buf.Write(pt_b)
 
 	data = buf.Bytes()
@@ -38,7 +38,7 @@ func (app *Admin_PassWd_Power) MarshalBinary() (data []byte, err error) {
 	return
 }
 
-func (app *Admin_PassWd_Power) UnmarshalBinary(data []byte) (err error) {
+func (u *User_PassWd_Power) UnmarshalBinary(data []byte) (err error) {
 	defer func() {
 		if err := recover(); err != nil {
 			return
@@ -50,13 +50,13 @@ func (app *Admin_PassWd_Power) UnmarshalBinary(data []byte) (err error) {
 	name_b_len_b := buf.Next(8)
 	name_b_len := iendecode.BytesToUint64(name_b_len_b)
 	name_b := buf.Next(int(name_b_len))
-	app.Name = string(name_b)
+	u.Name = string(name_b)
 
 	password_b := buf.Next(40)
-	app.Password = string(password_b)
+	u.Password = string(password_b)
 
 	pt_b := buf.Next(1)
-	app.PowerType = iendecode.BytesToUint8(pt_b)
+	u.PowerType = iendecode.BytesToUint8(pt_b)
 
 	return
 }

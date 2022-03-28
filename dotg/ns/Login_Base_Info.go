@@ -26,7 +26,7 @@ func (l *Login_Base_Info) MarshalBinary() (data []byte, err error) {
 	uuid_b := []byte(l.Uuid)
 
 	buf.Write(name_b_len_b)
-	buf.Write(name_b_len_b)
+	buf.Write(name_b)
 	buf.Write(uuid_b)
 
 	data = buf.Bytes()
