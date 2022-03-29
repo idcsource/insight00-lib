@@ -34,19 +34,19 @@ const (
 	OPERATE_TYPE_NEW_USER                          // 添加用户，使用ns包中的User_PassWd_Power，这个也是用户dot的数据体
 	OPERATE_TYPE_USER_ADD_BLOCK                    // 给用户增加一个bock权限，使用ns包中的User_Block
 	OPERATE_TYPE_USER_DEL_BLOCK                    // 给用户减一个block权限，使用ns包中的User_Block
-	OPERATE_TYPE_DEL_USER                          // 删除用户，直接加用户名
-	OPERATE_TYPE_NEW_BLOCK                         // 新增Block，直接加block名
-	OPERATE_TYPE_DEL_BLOCK                         // 删除Block，直接加block名
+	OPERATE_TYPE_DEL_USER                          // 删除用户，直接加用户名，用String_In_Byte
+	OPERATE_TYPE_NEW_BLOCK                         // 新增Block，直接加block名，用String_In_Byte
+	OPERATE_TYPE_DEL_BLOCK                         // 删除Block，直接加block名，用String_In_Byte
 	OPERATE_TYPE_NEW_DOT                           // 新建dot，使用ns包中的A_Dot_With_A_Context
-	OPERATE_TYPE_NEW_DOT_WITH_CONTEXT              // 新建包含一个上下关系的dot，，使用ns包中的A_Dot_With_A_Context
-	OPERATE_TYPE_DEL_DOT                           // 删除dot，直接加dot的名字
-	OPERATE_TYPE_UPDATE_DATA                       // 更新数据
-	OPERATE_TYPE_READ_DATA                         // 读取数据
+	OPERATE_TYPE_NEW_DOT_WITH_CONTEXT              // 新建包含一个上下关系的dot，使用ns包中的A_Dot_With_A_Context
+	OPERATE_TYPE_DEL_DOT                           // 删除dot，直接加dot的名字，用String_In_Byte
+	OPERATE_TYPE_UPDATE_DATA                       // 更新数据，使用ns包中的A_Dot_With_A_Context
+	OPERATE_TYPE_READ_DATA                         // 读取数据,直接加dot的名字，用String_In_Byte
 	OPERATE_TYPE_UPDATE_ONE_DOWN                   // 更新一个down
 	OPERATE_TYPE_UPDATE_ONE_UP                     // 更新一个up
 	OPERATE_TYPE_DEL_ONE_DOWN                      // 删除一个down
-	OPERATE_TYPE_ADD_CONTEXT                       // 添加一个context
-	OPERATE_TYPE_UPDATE_CONTEXT                    // 完整更新一个context
+	OPERATE_TYPE_ADD_CONTEXT                       // 添加一个context，使用ns包中的A_Dot_With_A_Context
+	OPERATE_TYPE_UPDATE_CONTEXT                    // 完整更新一个context，使用ns包中的A_Dot_With_A_Context
 	OPERATE_TYPE_DEL_CONTEXT                       // 删除一个完整context
 	OPERATE_TYPE_READ_CONTEXT                      // 读一个完整的context
 	OPERATE_TYPE_READ_ONE_UP                       // 读一个up
