@@ -42,18 +42,18 @@ const (
 	OPERATE_TYPE_DEL_DOT                           // 删除dot，直接加dot的名字，用String_In_Byte
 	OPERATE_TYPE_UPDATE_DATA                       // 更新数据，使用ns包中的A_Dot_With_A_Context
 	OPERATE_TYPE_READ_DATA                         // 读取数据,直接加dot的名字，用String_In_Byte
-	OPERATE_TYPE_UPDATE_ONE_DOWN                   // 更新一个down
-	OPERATE_TYPE_UPDATE_ONE_UP                     // 更新一个up
-	OPERATE_TYPE_DEL_ONE_DOWN                      // 删除一个down
+	OPERATE_TYPE_UPDATE_ONE_DOWN                   // 更新一个down，用Change_One_Down
+	OPERATE_TYPE_UPDATE_ONE_UP                     // 更新一个up，用Change_One_Up
+	OPERATE_TYPE_DEL_ONE_DOWN                      // 删除一个down，用Change_One_Down
 	OPERATE_TYPE_ADD_CONTEXT                       // 添加一个context，使用ns包中的A_Dot_With_A_Context
 	OPERATE_TYPE_UPDATE_CONTEXT                    // 完整更新一个context，使用ns包中的A_Dot_With_A_Context
-	OPERATE_TYPE_DEL_CONTEXT                       // 删除一个完整context
-	OPERATE_TYPE_READ_CONTEXT                      // 读一个完整的context
-	OPERATE_TYPE_READ_ONE_UP                       // 读一个up
-	OPERATE_TYPE_READ_ONE_DOWN                     // 读一个down
-	OPERATE_TYPE_READ_DATA_TV                      // 读data的time和version
-	OPERATE_TYPE_READ_INDEX_TV                     // 读context索引的time和version
-	OPERATE_TYPE_READ_CONTEXT_TV                   // 读某个context的time和version
+	OPERATE_TYPE_DEL_CONTEXT                       // 删除一个完整context，使用ns包中的A_Dot_With_A_Context
+	OPERATE_TYPE_READ_CONTEXT                      // 读一个完整的context，使用ns包中的A_Dot_With_A_Context
+	OPERATE_TYPE_READ_ONE_UP                       // 读一个up，用Change_One_Up
+	OPERATE_TYPE_READ_ONE_DOWN                     // 读一个down，用Change_One_Down
+	OPERATE_TYPE_READ_DATA_TV                      // 读data的time和version，直接加dot的名字，用String_In_Byte
+	OPERATE_TYPE_READ_INDEX_TV                     // 读context索引的time和version，直接加dot的名字，用String_In_Byte
+	OPERATE_TYPE_READ_CONTEXT_TV                   // 读某个context的time和version，使用ns包中的Change_One_Up
 
 	// 服务端返回给客户端的状态
 	OPERATE_RETURN_NO               uint8 = iota // 操作的返回状态，没有状态
