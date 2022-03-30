@@ -40,7 +40,8 @@ type logedUser struct {
 // nst的ConnExecer实现
 func (s *Server) NSTexec(ce *nst.ConnExec) (stat nst.SendStat, err error) {
 	if s.closed == true {
-
+		// 这里发送服务器关闭的状态
+		return
 	}
 	s.run_wait.Add(1)
 	defer s.run_wait.Done()

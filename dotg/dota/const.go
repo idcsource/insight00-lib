@@ -59,11 +59,11 @@ const (
 	OPERATE_RETURN_NO               uint8 = iota // 操作的返回状态，没有状态
 	OPERATE_RETURN_TYPE_NOT_HAVE                 // 请求的操作不存在
 	OPERATE_RETURN_TYPE_FORMAT_ERR               // 请求的操作格式错误
-	OPERATE_RETURN_LOGIN_OK                      // 成功登陆，后面将跟服务器返回的uuid
 	OPERATE_RETURN_PASSWD_NO                     // 用户名或密码错误
 	OPERATE_RETURN_LOGIN_NO                      // 没有登陆，客户端应该赶紧重新发起登录
 	OPERATE_RETURN_KEEPLIVE_OK                   // 续期成功
 	OPERATE_RETURN_ALL_OK                        // 操作都没问题
 	OPERATE_RETURN_ALL_OK_WITH_DATA              // 操作都OK，并带有返回数据
 	OPERATE_RETURN_ERROR                         // 操作错误，这个必定带有返回数据
+	OPERATE_RETURN_CLOSED                        // 服务端已关闭
 )
