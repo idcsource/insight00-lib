@@ -616,7 +616,7 @@ func (dop *DotsOp) ReadData(dotid string) (data []byte, len int64, err error) {
 }
 
 // 更新一个上下文中的Down关系
-func (dop *DotsOp) UpdateOneDown(dotid string, contextid string, downname string, varlue string) (err error) {
+func (dop *DotsOp) UpdateOneDown(dotid string, contextid string, downname string, value string) (err error) {
 	fname, fpath, err := dop.findFilePath(dotid)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
@@ -712,7 +712,7 @@ func (dop *DotsOp) UpdateOneDown(dotid string, contextid string, downname string
 	err = context.UnmarshalBinary(con_b)
 
 	// 修改
-	context.Down[downname] = varlue
+	context.Down[downname] = value
 	context_b, err := context.MarshalBinary()
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
@@ -1528,7 +1528,7 @@ func (dop *DotsOp) ReadOneUp(dotid string, contextid string) (up string, err err
 
 // 读取某个上下文的Down的值
 // 如果存在这个contextid，但找不到的这个down，则在have中返回false
-func (dop *DotsOp) ReadOneDown(dotid string, contextid string, downname string) (varlue string, have bool, err error) {
+func (dop *DotsOp) ReadOneDown(dotid string, contextid string, downname string) (value string, have bool, err error) {
 	fname, fpath, err := dop.findFilePath(dotid)
 	if err != nil {
 		err = fmt.Errorf("dot: %v", err)
@@ -1587,7 +1587,7 @@ func (dop *DotsOp) ReadOneDown(dotid string, contextid string, downname string) 
 		have = false
 		return
 	}
-	varlue = con.Down[downname]
+	value = con.Down[downname]
 	have = true
 
 	return
