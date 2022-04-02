@@ -14,7 +14,7 @@ import (
 // 这是dota客户端登录后，每次操作客户端都要发给服务器的
 type Login_Base_Info struct {
 	Name string
-	Uuid string
+	Unid string
 }
 
 func (l *Login_Base_Info) MarshalBinary() (data []byte, err error) {
@@ -23,7 +23,7 @@ func (l *Login_Base_Info) MarshalBinary() (data []byte, err error) {
 	name_b := []byte(l.Name)
 	name_b_len := len(name_b)
 	name_b_len_b := iendecode.Uint64ToBytes(uint64(name_b_len)) // 8位的长度
-	uuid_b := []byte(l.Uuid)
+	uuid_b := []byte(l.Unid)
 
 	buf.Write(name_b_len_b)
 	buf.Write(name_b)
@@ -47,7 +47,7 @@ func (l *Login_Base_Info) UnmarshalBinary(data []byte) (err error) {
 	l.Name = string(name_b)
 
 	uuid_b := buf.Next(40)
-	l.Uuid = string(uuid_b)
+	l.Unid = string(uuid_b)
 
 	return
 }

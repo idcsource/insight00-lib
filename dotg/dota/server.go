@@ -6,10 +6,12 @@
 package dota
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/idcsource/insight00-lib/dotg/dot"
+	"github.com/idcsource/insight00-lib/dotg/ns"
 	"github.com/idcsource/insight00-lib/logs"
 	"github.com/idcsource/insight00-lib/nst"
 )
@@ -45,6 +47,54 @@ func (s *Server) NSTexec(ce *nst.ConnExec) (stat nst.SendStat, err error) {
 	}
 	s.run_wait.Add(1)
 	defer s.run_wait.Done()
+
+	// 接收数据
+	cs_b, err := ce.GetData()
+	if err != nil {
+		err = fmt.Errorf("dota: %v", err)
+		return
+	}
+	// 解码数据
+	cs := ns.New_Client_Send()
+	err = cs.UnmarshalBinary(cs_b)
+	if err != nil {
+		err = fmt.Errorf("dota: %v", err)
+		return
+	}
+	if cs.OperateType == OPERATE_TYPE_LOGIN {
+		// 这里是执行登录
+	} else {
+		// 这里加登录判断，如果没有登录就不用执行下面的工作了
+		switch cs.OperateType {
+		case OPERATE_TYPE_KEEPLIVE:
+		case OPERATE_TYPE_CHANGE_PASSWORD:
+		case OPERATE_TYPE_NEW_USER:
+		case OPERATE_TYPE_USER_ADD_BLOCK:
+		case OPERATE_TYPE_USER_DEL_BLOCK:
+		case OPERATE_TYPE_DEL_USER:
+		case OPERATE_TYPE_NEW_BLOCK:
+		case OPERATE_TYPE_DEL_BLOCK:
+		case OPERATE_TYPE_NEW_DOT:
+		case OPERATE_TYPE_NEW_DOT_WITH_CONTEXT:
+		case OPERATE_TYPE_DEL_DOT:
+		case OPERATE_TYPE_UPDATE_DATA:
+		case OPERATE_TYPE_READ_DATA:
+		case OPERATE_TYPE_UPDATE_ONE_DOWN:
+		case OPERATE_TYPE_UPDATE_ONE_UP:
+		case OPERATE_TYPE_DEL_ONE_DOWN:
+		case OPERATE_TYPE_ADD_CONTEXT:
+		case OPERATE_TYPE_UPDATE_CONTEXT:
+		case OPERATE_TYPE_DEL_CONTEXT:
+		case OPERATE_TYPE_READ_CONTEXT:
+		case OPERATE_TYPE_READ_ONE_UP:
+		case OPERATE_TYPE_READ_ONE_DOWN:
+		case OPERATE_TYPE_READ_DATA_TV:
+		case OPERATE_TYPE_READ_INDEX_TV:
+		case OPERATE_TYPE_READ_CONTEXT_TV:
+		default:
+			// 这里是没有任何知道的请求
+		}
+	}
 	return
 }
 

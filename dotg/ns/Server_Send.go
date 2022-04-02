@@ -13,9 +13,9 @@ import (
 
 // 这是客户端往服务器发送的完整信息
 type Server_Send struct {
-	ReturnType uint8                 // 操作类型，OPERATE_RETURN_的那些
-	ReturnErr  string                // 返回的错误，这个可能为空
-	ReturnBody iendecode.BinaryCoder // 返回的结构体，可能为空
+	ReturnType uint8  // 操作类型，OPERATE_RETURN_的那些
+	ReturnErr  string // 返回的错误，这个可能为空
+	ReturnBody []byte // 返回的结构体，可能为空
 }
 
 func New_Server_Send() (c *Server_Send) {
@@ -26,7 +26,7 @@ func New_Server_Send() (c *Server_Send) {
 	return
 }
 
-func (c *Server_Send) ToBytes() (data []byte, err error) {
+func (c *Server_Send) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	// ReturnType(1byte)
@@ -41,15 +41,11 @@ func (c *Server_Send) ToBytes() (data []byte, err error) {
 		buf.Write(o_b)
 	}
 	// ReturnBody
-	ob_b, err := c.ReturnBody.MarshalBinary()
-	if err != nil {
-		return
-	}
-	ob_b_l := len(ob_b)
+	ob_b_l := len(c.ReturnBody)
 	ob_b_l_b := iendecode.Uint64ToBytes(uint64(ob_b_l))
 	buf.Write(ob_b_l_b)
 	if ob_b_l != 0 {
-		buf.Write(ob_b)
+		buf.Write(c.ReturnBody)
 	}
 
 	data = buf.Bytes()
@@ -57,7 +53,7 @@ func (c *Server_Send) ToBytes() (data []byte, err error) {
 	return
 }
 
-func (c *Server_Send) FromBytes(data []byte, ob iendecode.BinaryCoder) (err error) {
+func (c *Server_Send) UnmarshalBinary(data []byte) (err error) {
 	defer func() {
 		if err := recover(); err != nil {
 			return
@@ -80,12 +76,7 @@ func (c *Server_Send) FromBytes(data []byte, ob iendecode.BinaryCoder) (err erro
 	ob_b_l_b := buf.Next(8)
 	ob_b_l := iendecode.BytesToUint64(ob_b_l_b)
 	if ob_b_l != 0 {
-		ob_b := buf.Next(int(ob_b_l))
-		c.ReturnBody = ob
-		err = c.ReturnBody.UnmarshalBinary(ob_b)
-		if err != nil {
-			return
-		}
+		c.ReturnBody = buf.Next(int(ob_b_l))
 	}
 
 	return

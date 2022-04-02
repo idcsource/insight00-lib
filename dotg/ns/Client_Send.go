@@ -14,11 +14,11 @@ import (
 
 // 这是客户端往服务器发送的完整信息
 type Client_Send struct {
-	Time         time.Time             // 触发操作的时间
-	OperateType  uint8                 // 操作类型,OPERATE_TYPE_开头的那些
-	LoginInfo    *Login_Base_Info      // 登陆信息，这个有可能是空的
-	OperateBlock string                // 要操作的block，这个可能为空
-	OperateBody  iendecode.BinaryCoder // 操作的具体请求体
+	Time         time.Time        // 触发操作的时间
+	OperateType  uint8            // 操作类型,OPERATE_TYPE_开头的那些
+	LoginInfo    *Login_Base_Info // 登陆信息，这个有可能是空的
+	OperateBlock string           // 要操作的block，这个可能为空
+	OperateBody  []byte           // 操作的具体请求体
 }
 
 func New_Client_Send() (c *Client_Send) {
@@ -31,7 +31,7 @@ func New_Client_Send() (c *Client_Send) {
 	return
 }
 
-func (c *Client_Send) ToBytes() (data []byte, err error) {
+func (c *Client_Send) MarshalBinary() (data []byte, err error) {
 	var buf bytes.Buffer
 
 	// Time（15byte）
@@ -63,15 +63,11 @@ func (c *Client_Send) ToBytes() (data []byte, err error) {
 		buf.Write(o_b)
 	}
 	// OperateBody
-	ob_b, err := c.OperateBody.MarshalBinary()
-	if err != nil {
-		return
-	}
-	ob_b_l := len(ob_b)
+	ob_b_l := len(c.OperateBody)
 	ob_b_l_b := iendecode.Uint64ToBytes(uint64(ob_b_l))
 	buf.Write(ob_b_l_b)
 	if ob_b_l != 0 {
-		buf.Write(ob_b)
+		buf.Write(c.OperateBody)
 	}
 
 	data = buf.Bytes()
@@ -79,7 +75,7 @@ func (c *Client_Send) ToBytes() (data []byte, err error) {
 	return
 }
 
-func (c *Client_Send) FromBytes(data []byte, ob iendecode.BinaryCoder) (err error) {
+func (c *Client_Send) UnmarshalBinary(data []byte) (err error) {
 	defer func() {
 		if err := recover(); err != nil {
 			return
@@ -119,12 +115,7 @@ func (c *Client_Send) FromBytes(data []byte, ob iendecode.BinaryCoder) (err erro
 	ob_b_l_b := buf.Next(8)
 	ob_b_l := iendecode.BytesToUint64(ob_b_l_b)
 	if ob_b_l != 0 {
-		ob_b := buf.Next(int(ob_b_l))
-		c.OperateBody = ob
-		err = c.OperateBody.UnmarshalBinary(ob_b)
-		if err != nil {
-			return
-		}
+		c.OperateBody = buf.Next(int(ob_b_l))
 	}
 
 	return
