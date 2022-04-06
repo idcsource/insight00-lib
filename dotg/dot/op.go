@@ -573,6 +573,39 @@ func (dop *DotsOp) UpdateData(id string, data []byte) (err error) {
 	return
 }
 
+// 是否存在一个dot
+func (dop *DotsOp) HaveDot(dotid string) (have bool, err error) {
+	have = false
+
+	fname, fpath, err := dop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("dot: %v", err)
+		return
+	}
+	fmt.Println(fpath)
+
+	// 加读锁
+	dop.dots_lock_lock.Lock()
+	if _, have := dop.dots_lock[fname]; have != true {
+		dop.dots_lock[fname] = new(sync.RWMutex)
+	}
+	dop.dots_lock[fname].RLock()
+	dop.dots_lock_lock.Unlock()
+	// 函数退出的解锁
+	defer func() {
+		dop.dots_lock_lock.Lock()
+		dop.dots_lock[fname].RUnlock()
+		delete(dop.dots_lock, fname)
+		dop.dots_lock_lock.Unlock()
+	}()
+
+	// 打开文件
+	fname_data := fname + DOT_FILE_NAME_DATA
+	have = base.FileExist(fpath + fname_data)
+
+	return
+}
+
 // 读取数据
 func (dop *DotsOp) ReadData(dotid string) (data []byte, len int64, err error) {
 	fname, fpath, err := dop.findFilePath(dotid)
