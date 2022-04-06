@@ -61,8 +61,10 @@ func (s *Server) NSTexec(ce *nst.ConnExec) (stat nst.SendStat, err error) {
 		err = fmt.Errorf("dota: %v", err)
 		return
 	}
+	var ss *ns.Server_Send
 	if cs.OperateType == OPERATE_TYPE_LOGIN {
 		// 这里是执行登录
+		ss, err = s.doLogin(cs)
 	} else {
 		// 这里加登录判断，如果没有登录就不用执行下面的工作了
 		switch cs.OperateType {
@@ -92,9 +94,16 @@ func (s *Server) NSTexec(ce *nst.ConnExec) (stat nst.SendStat, err error) {
 		case OPERATE_TYPE_READ_INDEX_TV:
 		case OPERATE_TYPE_READ_CONTEXT_TV:
 		default:
-			// 这里是没有任何知道的请求
+			// TODO:这里是没有任何知道的请求
 		}
 	}
+	if err != nil {
+		// TODO:这里负责错误
+	}
+	// 如果没错误，就负责发送Server_Send
+	ss_b, _ := ss.MarshalBinary()
+	err = ce.SendData(ss_b)
+
 	return
 }
 
@@ -107,4 +116,46 @@ func (s *Server) Close() (err error) {
 	s.run_wait.Wait()
 	return
 
+}
+
+// 执行登录
+func (s *Server) doLogin(cs *ns.Client_Send) (ss *ns.Server_Send, err error) {
+	// 解开To_Login
+	csb := &ns.To_Login{}
+	err = csb.UnmarshalBinary(cs.OperateBody)
+	if err != nil {
+		return
+	}
+	// 加操作User的所
+	s.user_lock.Lock()
+	defer s.user_lock.Unlock()
+
+	// 查看是不是有这个dot
+	have, err := s.dota_op.HaveDot(DEFAULT_USER_PREFIX + csb.Name)
+	if err != nil {
+		return
+	}
+	if have == false {
+		// TODO:如果没有的话
+	} else {
+		// 去默认的block中找这个user
+		var user_b []byte
+		user_b, _, err = s.dota_op.ReadData(DEFAULT_USER_PREFIX + csb.Name)
+		if err != nil {
+			return
+		}
+		// 解开用户信息
+		users := &ns.User_PassWd_Power{}
+		err = users.UnmarshalBinary(user_b)
+		if err != nil {
+			return
+		}
+		// 对比密码
+		if csb.Password == users.Password {
+			// TODO:如果密码对
+		} else {
+			// TODO:如果密码不对
+		}
+	}
+	return
 }
