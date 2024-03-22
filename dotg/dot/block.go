@@ -15,6 +15,7 @@ import (
 )
 
 // 初始化一个块（block）的结构，用来存储dot
+// 其中path为保存的路径（需要保证存在），name为存储的名称（会新建），deep为存储目录深度
 func InitBlock(path string, name string, deep uint8) (err error) {
 	path = base.LocalPath(path)
 

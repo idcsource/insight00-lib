@@ -25,7 +25,8 @@ type DotsOp struct {
 	dots_lock_lock *sync.RWMutex            // 避免操作上面的dot锁时有抢占，在对上面的锁修改时也要现锁定
 }
 
-// 新建一个dot的操作（在block范围内的）
+// 新建一个dot的操作
+// 这里的path和name需要填写InitBlock时对应的，也就是这个方法后续将是操作这个Block下的dot。
 func NewDotsOp(path string, name string) (dop *DotsOp, err error) {
 	path = base.LocalPath(path)
 	path = path + name + "/"
@@ -138,6 +139,10 @@ func (dop *DotsOp) readAfterWithFile(m int64, f *os.File) (b []byte, len int64, 
 }
 
 // 新建一个只有数据的dot
+// 这里的id为这个dot的名字，目前可以是255长度内的任何字符
+// 这里会对id进行sha1转换并用于后续的文件操作，会在操作中加写锁
+// 会判断这个id是否已经存在
+// 最终会在Block的目录中保存这个Dot
 func (dop *DotsOp) NewDot(id string, data []byte) (err error) {
 	fname, fpath, err := dop.findFilePath(id)
 	if err != nil {
@@ -248,6 +253,7 @@ func (dop *DotsOp) NewDot(id string, data []byte) (err error) {
 }
 
 // 新建一个有一条上下文关系的dot
+// 除了会写入一个上下文外，其他与NewDot一样
 func (dop *DotsOp) NewDotWithContext(id string, data []byte, contextid string, context *Context) (err error) {
 	fname, fpath, err := dop.findFilePath(id)
 	if err != nil {
