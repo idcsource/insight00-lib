@@ -18,7 +18,7 @@ Dot-Block（点块）为一个路径结构，用来存储Dot。可以理解为SQ
 
 每个Dot都可以携带多组上下文关系。
 
-## 版本1中dot的文件数据说明【计划废弃】
+## 版本1中dot的文件数据说明【计划废弃，不做兼容】
 
 ### dot数据体
 
@@ -53,6 +53,8 @@ Dot-Block（点块）为一个路径结构，用来存储Dot。可以理解为SQ
 
 数据结构： uint8的应用版本(1bit) | uint64的操作版本(8bit) | uint64的index位置编号(从0开始)(8bit) | uint8的状态位 | 上下文关系名(255bit定长) | uint64的index位置编号(从0开始)(8bit) | uint8的状态位 | 上下文关系id(255bit定长) | ……
 
+说明：状态位见DOT_CONTENT_INDEX_*
+
 ### dot上下文关系总索引已经删除位置
 
 文件名： (dot id的40位sha1散列)_context_del_index
@@ -64,6 +66,8 @@ Dot-Block（点块）为一个路径结构，用来存储Dot。可以理解为SQ
 文件名： (dot id的40位sha1散列)_context_(上下文关系id的40位sha1散列)
 
 数据结构： uint8的应用版本(1bit) | uint64的操作版本(8bit) | UP关系的dot id(255bit定长) | uint8的UP关系配置数据状态 | UP关系配置数据(255bit定长) | uint64的index位置编号(从0开始)(8bit) | uint8的状态位 | DOWN关系名(255bit定长) | DOWN关系配置数据(255bit定长) | uint64的index位置编号(从0开始)(8bit) | uint8的状态位 | DOWN关系名(255bit定长) | DOWN关系配置数据(255bit定长) | ……
+
+说明：状态位见DOT_CONTENT_UP_DOWN_INDEX_*
 
 ### dot单个上下文关系中DOWN的已经删除位置
 
