@@ -15,8 +15,10 @@ import (
 // 每个dot支持多组上下文关系
 // 每组上下文支持一个上文来源，和多个下文来源
 type Context struct {
-	Up   string            // 上下文的上游ID
-	Down map[string]string // 上下文的下游ID
+	Version uint8             // 涉及所操作dot的版本号，现在已经为V2
+	Up      string            // 上下文的上游ID
+	UpData  []byte            // 上下文的上游配置数据
+	Down    map[string][]byte // 上下文的下游ID，以及携带的配置数据
 }
 
 func NewContext() (c *Context) {
