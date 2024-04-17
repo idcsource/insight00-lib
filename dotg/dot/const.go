@@ -16,7 +16,11 @@ const (
 
 	DEPLOYED_FILE = "deployed"
 
-	DOT_ID_MAX_LENGTH_V1 = 255 // dot版本号为1的id最大长度
+	RUNNING_FILE = "running" // 标记正在运行的文件
+
+	DOT_ID_MAX_LENGTH_V2 = 255 // dot版本号为1与2的id最大长度
+
+	DOT_CONTENT_MAX_IN_DATA_V2 = 255 // dot版本号为2的content内连配置数据的最大长度
 )
 
 // dot上下文关系总索引的状态位
