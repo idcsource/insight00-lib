@@ -24,16 +24,31 @@ const (
 )
 
 // dot上下文关系总索引的状态位
+type _DotContextIndex_Status uint8
+
 const (
-	DOT_CONTENT_INDEX_NOTHING uint8 = 1 // 空位不用
-	DOT_CONTENT_INDEX_DEL               // 标记删除
+	DOT_CONTEXT_INDEX_NOTHING _DotContextIndex_Status = iota // 空位不用
+	DOT_CONTEXT_INDEX_DEL                                    // 标记删除
 )
 
 // dot上下文关系DOWN索引的状态位
+type _DotContextUpDownIndex_Status uint8
+
 const (
-	DOT_CONTENT_UP_DOWN_INDEX_NOTHING       uint8 = 1 // 空位不用
-	DOT_CONTENT_UP_DOWN_INDEX_DEL                     // 标记删除，UP关系不用
-	DOT_CONTENT_UP_DOWN_INDEX_INDATA                  // 数据在里面（不足255bit）
-	DOT_CONTENT_UP_DOWN_INDEX_OUTDATA                 // 数据在外面（超过255bit）
-	DOT_CONTENT_UP_DOWN_INDEX_OUTDATA_NODEL           // 不需要的外部数据文件但还没有删
+	DOT_CONTEXT_UP_DOWN_INDEX_NOTHING       _DotContextUpDownIndex_Status = iota // 空位不用
+	DOT_CONTEXT_UP_DOWN_INDEX_DEL                                                // 标记删除，UP关系不用
+	DOT_CONTEXT_UP_DOWN_INDEX_INDATA                                             // 数据在里面（不足255bit）
+	DOT_CONTEXT_UP_DOWN_INDEX_OUTDATA                                            // 数据在外面（超过255bit）
+	DOT_CONTEXT_UP_DOWN_INDEX_OUTDATA_NODEL                                      // 不需要的外部数据文件但还没有删
+)
+
+// block的dot锁类型
+
+type _BlockDotLockType uint8
+
+const (
+	BLOCK_DOT_LOCK_TYPE_NOTHING  _BlockDotLockType = iota // 空位不用
+	BLOCK_DOT_LOCK_TYPE_INSIDE                            // 内部锁
+	BLOCK_DOT_LOCK_TYPE_OUTSIDE                           // 外部锁
+	BLOCK_DOT_LOCK_TYPE_OUT_TRAN                          // 外部事务
 )

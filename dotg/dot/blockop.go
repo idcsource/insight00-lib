@@ -28,7 +28,31 @@ type BlockOp struct {
 // dot的操作锁
 type DotLock struct {
 	LockTime time.Time
+	LockType _BlockDotLockType // 锁的类型
 	Lock     *sync.RWMutex
+}
+
+// 显示当前的全部dot锁状态
+func (bop *BlockOp) DisplayDotLock() (dots_lock map[string]DotLock) {
+	return bop.dots_lock
+}
+
+// 外部加锁
+func (bop *BlockOp) OutLock(id string) (err error) {
+	return
+
+}
+
+// 外部加读锁
+func (bop *BlockOp) OutRLock(id string) (err error) {
+	return
+
+}
+
+// 外部解锁
+func (bop *BlockOp) OutUnlock(id string) (err error) {
+	return
+
 }
 
 // 返回要操作的dot的文件名和路径
