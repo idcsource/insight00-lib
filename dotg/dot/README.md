@@ -51,7 +51,7 @@ Dot-Block（点块）为一个路径结构，用来存储Dot。可以理解为SQ
 
 文件名： (dot id的40位sha1散列)_context
 
-数据结构： uint8的应用版本(1bit) | uint64的操作版本(8bit) | uint64的index位置编号(从0开始)(8bit) | uint8的状态位 | 上下文关系名(255bit定长) | uint64的index位置编号(从0开始)(8bit) | uint8的状态位 | 上下文关系id(255bit定长) | ……
+数据结构： uint8的应用版本(1bit) | uint64的操作版本(8bit) | uint8的状态位 | 上下文关系名(255bit定长) | uint8的状态位 | 上下文关系id(255bit定长) | ……
 
 说明：状态位见类型 _DotContextIndex_Status
 
@@ -65,7 +65,7 @@ Dot-Block（点块）为一个路径结构，用来存储Dot。可以理解为SQ
 
 文件名： (dot id的40位sha1散列)_context_(上下文关系id的40位sha1散列)
 
-数据结构： uint8的应用版本(1bit) | uint64的操作版本(8bit) | UP关系的dot id(255bit定长) | uint8的UP关系配置数据状态 | UP关系配置数据(255bit定长) | uint64的index位置编号(从0开始)(8bit) | uint8的状态位 | DOWN关系名(255bit定长) | DOWN关系配置数据(255bit定长) | uint64的index位置编号(从0开始)(8bit) | uint8的状态位 | DOWN关系名(255bit定长) | DOWN关系配置数据(255bit定长) | ……
+数据结构： uint8的应用版本(1bit) | uint64的操作版本(8bit) | UP关系的dot id(255bit定长) | uint8的UP关系配置数据状态 | UP关系配置数据(255bit定长) | uint8的状态位 | DOWN关系名(255bit定长) | DOWN关系配置数据(255bit定长) | uint8的状态位 | DOWN关系名(255bit定长) | DOWN关系配置数据(255bit定长) | ……
 
 说明：状态位见类型 _DotContextUpDownIndex_Status
 

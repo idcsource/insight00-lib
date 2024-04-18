@@ -32,6 +32,16 @@ type DotLock struct {
 	Lock     *sync.RWMutex
 }
 
+// 新建一个dot
+func (bop *BlockOp) NewDot(id string, data []byte) (err error) {
+	fname, fpath, err := dop.findFilePath(id)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	return
+}
+
 // 显示当前的全部dot锁状态
 func (bop *BlockOp) DisplayDotLock() (dots_lock map[string]DotLock) {
 	return bop.dots_lock
@@ -55,7 +65,13 @@ func (bop *BlockOp) OutUnlock(id string) (err error) {
 
 }
 
-// 返回要操作的dot的文件名和路径
+// 外部读解锁
+func (bop *BlockOp) OutRUnlock(id string) (err error) {
+	return
+
+}
+
+// 返回要操作的dot的文件名和路径，同时会检查ID的长度
 func (bop *BlockOp) findFilePath(id string) (fname string, fpath string, err error) {
 	if len([]byte(id)) > DOT_ID_MAX_LENGTH_V2 {
 		err = fmt.Errorf("Dot Block: The dot id length must less than %v: \"%v\"", DOT_ID_MAX_LENGTH_V2, id)
