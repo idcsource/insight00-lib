@@ -43,13 +43,13 @@ Dot-Block（点块）为一个路径结构，用来存储Dot。可以理解为SQ
 
 ### dot数据体
 
-文件名： (dot id的40位sha1散列)_data
+文件名： (dot id的40位sha1散列)_body
 
 数据结构： uint8的应用版本(1bit) | dot id(255bit定长) | uint64的操作版本(8bit)|数据体
 
 ### dot上下文关系总索引
 
-文件名： (dot id的40位sha1散列)_context
+文件名： (dot id的40位sha1散列)_context_index
 
 数据结构： uint8的应用版本(1bit) | uint64的操作版本(8bit) | uint8的状态位 | 上下文关系名(255bit定长) | uint8的状态位 | 上下文关系id(255bit定长) | ……
 

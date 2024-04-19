@@ -10,10 +10,6 @@ const (
 
 	BLOCK_NOW_DEFAULT_VERSION uint8 = 1 // 当前block默认版本号，涉及到后续升级时使用
 
-	DOT_FILE_NAME_DATA = "_data"
-
-	DOT_FILE_NAME_CONTEXT = "_context"
-
 	DEPLOYED_FILE = "deployed"
 
 	RUNNING_FILE = "running" // 标记正在运行的文件

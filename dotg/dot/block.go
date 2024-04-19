@@ -10,7 +10,6 @@ import (
 	"io/ioutil"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/idcsource/insight00-lib/base"
 	"github.com/idcsource/insight00-lib/jconf"
@@ -131,16 +130,16 @@ func StartBlock(path string, name string) (bop *BlockOp, err error) {
 		path:           path,
 		version:        uint8(b_conf_version),
 		deep:           uint8(b_conf_deep),
-		dots_lock:      make(map[string]DotLock),
+		dots_lock:      make(map[string]*DotLock),
 		dots_lock_lock: new(sync.RWMutex),
 	}
 
 	// 写入running标记
 	f_byte := []byte("1")
-	err = ioutil.WriteFile(isrunning, f_byte, 0600)
+	err = ioutil.WriteFile(path+RUNNING_FILE, f_byte, 0600)
 	if err != nil {
 		err = fmt.Errorf("Dot Block: %v", err)
-		err
+		return
 	}
 
 	return

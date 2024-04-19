@@ -6,10 +6,6 @@
 // 一个最小数据存储单位的实现
 package dot
 
-import (
-	"time"
-)
-
 type Dot struct {
 	Version uint8  // 涉及所操作dot的版本号，现在已经为V2
 	Id      string // dot的id，固定在255个字节长度的字符串，存储的时候，后面会补0字节
