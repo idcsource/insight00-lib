@@ -48,16 +48,19 @@ func (bop *BlockOp) NewDot(id string, data []byte) (fpath string, fname string, 
 			Lock:     new(sync.RWMutex),
 		}
 	}
-	bop.dots_lock[id].LockTime = time.Now()
-	bop.dots_lock[id].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-	bop.dots_lock[id].Lock.Lock()
+	// 如果没有锁就加内部锁，如果是外部锁，就不管了
+	if bop.dots_lock[id].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[id].LockTime = time.Now()
+		bop.dots_lock[id].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+		bop.dots_lock[id].Lock.Lock()
+		defer func() {
+			bop.dots_lock_lock.Lock()
+			bop.dots_lock[id].Lock.Unlock()
+			bop.dots_lock[id].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+			bop.dots_lock_lock.Unlock()
+		}()
+	}
 	bop.dots_lock_lock.Unlock()
-	defer func() {
-		bop.dots_lock_lock.Lock()
-		bop.dots_lock[id].Lock.Unlock()
-		bop.dots_lock[id].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-		bop.dots_lock_lock.Unlock()
-	}()
 
 	// 确认文件
 	ishave_body := base.FileExist(fpath + fname + "_body")
