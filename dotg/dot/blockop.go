@@ -145,6 +145,30 @@ func (bop *BlockOp) NewDot(id string, data []byte) (fpath string, fname string, 
 	return
 }
 
+// 修改dot中的数据
+
+// 读取dot中的数据
+
+// 删除一个dot
+
+// 增加一个context
+
+// 删除一个context
+
+// 读取所有context名称
+
+// 修改一个context的up信息（名称+数据）
+
+// 修改一个context的up信息（只名称）
+
+// 修改一个context的up信息（只数据）
+
+// 增加一个context的down信息（名称+数据）
+
+// 修改一个context的down信息（只数据）
+
+// 删除一个context的down信息
+
 // 显示当前的全部dot锁状态
 func (bop *BlockOp) DisplayDotLock() (dots_lock map[string]*DotLock) {
 	return bop.dots_lock
