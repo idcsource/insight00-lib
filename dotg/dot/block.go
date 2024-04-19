@@ -150,3 +150,49 @@ func (bop *BlockOp) StopBlock() (err error) {
 	err = os.Remove(bop.path + RUNNING_FILE)
 	return
 }
+
+// 备份，需要非running状态下，把整个目录进行打包，需要在linux下，并且有tar和gzip
+func BackupBlock(path, name, backupname string) (err error) {
+	path = base.LocalPath(path)
+	pathname := path + name + "/"
+
+	// 判断是否为block
+	isblock := base.FileExist(pathname + DEPLOYED_FILE)
+	if isblock == false {
+		err = fmt.Errorf("Dot Block: This is not a block path: %v", pathname)
+		return
+	}
+	// 判断是否在运行
+	isrunning := base.FileExist(pathname + RUNNING_FILE)
+	if isrunning == true {
+		err = fmt.Errorf("Dot Block: The block path is running: %v", pathname)
+		return
+	}
+
+	// 写入running标记
+	f_byte := []byte("1")
+	err = ioutil.WriteFile(pathname+RUNNING_FILE, f_byte, 0600)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	defer os.Remove(pathname + RUNNING_FILE)
+
+	//开始压缩
+	env := os.Environ()
+	procAttr := &os.ProcAttr{
+		Env: env,
+		Files: []*os.File{
+			os.Stdin,
+			os.Stdout,
+			os.Stderr,
+		},
+	}
+	// 执行外部压缩命令
+	_, err = os.StartProcess("/bin/tar", []string{"tar", "-zcPf", backupname, "--exclude=running", "-C", path, name}, procAttr)
+	if err != nil {
+		err = fmt.Errorf("Error %v starting process!", err)
+	}
+
+	return
+}
