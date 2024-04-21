@@ -148,6 +148,53 @@ func (bop *BlockOp) NewDot(id string, data []byte) (fpath string, fname string, 
 // 修改dot中的数据
 
 // 读取dot中的数据
+func (bop *BlockOp) ReadDotData(dotid string) (data []byte, len int64, err error) {
+	fname, fpath, err := bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	// 加锁，读锁
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock:     new(sync.RWMutex),
+		}
+	}
+	// 如果没有锁就加内部锁，如果是外部锁，就不管了
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[dotid].LockTime = time.Now()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+		bop.dots_lock[dotid].Lock.RLock()
+		defer func() {
+			bop.dots_lock_lock.Lock()
+			bop.dots_lock[dotid].Lock.RUnlock()
+			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+			bop.dots_lock_lock.Unlock()
+		}()
+	}
+	bop.dots_lock_lock.Unlock()
+
+	// 打开文件
+	fname_data := fname + "_body"
+	ishave := base.FileExist(fpath + fname_data)
+	// 如果不存在就返回错误
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the dot \"%v\".", dotid)
+		return
+	}
+	f, err := os.OpenFile(fpath+fname_data, os.O_RDONLY, 0600)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	data, len, err = bop.readAfterWithFile(1+DOT_ID_MAX_LENGTH_V2+8, f)
+
+	return
+}
 
 // 删除一个dot
 
