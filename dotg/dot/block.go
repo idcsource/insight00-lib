@@ -132,6 +132,7 @@ func StartBlock(path string, name string) (bop *BlockOp, err error) {
 		deep:           uint8(b_conf_deep),
 		dots_lock:      make(map[string]*DotLock),
 		dots_lock_lock: new(sync.RWMutex),
+		running:        true,
 	}
 
 	// 写入running标记
@@ -147,6 +148,7 @@ func StartBlock(path string, name string) (bop *BlockOp, err error) {
 
 // 关闭block，删除running标记
 func (bop *BlockOp) StopBlock() (err error) {
+	bop.running = false
 	err = os.Remove(bop.path + RUNNING_FILE)
 	return
 }

@@ -23,6 +23,8 @@ type BlockOp struct {
 	deep           uint8               // block的路径深度，这两个都要与InitBlock一致
 	dots_lock      map[string]*DotLock // 正在操作的dot都会加上相应的锁，map的key为dot的id
 	dots_lock_lock *sync.RWMutex       // 避免操作上面的dot锁时有抢占，在对上面的锁修改时也要现锁定
+	running        bool                // 是否在运行状态
+
 }
 
 // dot的操作锁
@@ -34,6 +36,11 @@ type DotLock struct {
 
 // 新建一个dot
 func (bop *BlockOp) NewDot(id string, data []byte) (fpath string, fname string, err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
 	fname, fpath, err = bop.findFilePath(id)
 	if err != nil {
 		err = fmt.Errorf("%v", err)
@@ -148,6 +155,11 @@ func (bop *BlockOp) NewDot(id string, data []byte) (fpath string, fname string, 
 
 // 修改dot中的数据
 func (bop *BlockOp) UpdateDotData(dotid string, data []byte) (err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
 	fname, fpath, err := bop.findFilePath(dotid)
 	if err != nil {
 		err = fmt.Errorf("%v", err)
@@ -235,6 +247,11 @@ func (bop *BlockOp) UpdateDotData(dotid string, data []byte) (err error) {
 
 // 读取dot中的数据
 func (bop *BlockOp) ReadDotData(dotid string) (data []byte, len int64, err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
 	fname, fpath, err := bop.findFilePath(dotid)
 	if err != nil {
 		err = fmt.Errorf("%v", err)
@@ -287,6 +304,11 @@ func (bop *BlockOp) DelDot(dotid string) (err error) {
 	return bop.DropDot(dotid)
 }
 func (bop *BlockOp) DropDot(dotid string) (err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
 	fname, fpath, err := bop.findFilePath(dotid)
 	if err != nil {
 		err = fmt.Errorf("%v", err)
@@ -369,9 +391,18 @@ func (bop *BlockOp) DropDot(dotid string) (err error) {
 
 // 增加一个context
 func (bop *BlockOp) AddOneContext(dotid string, contextname string) (err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
 	fname, fpath, err := bop.findFilePath(dotid)
 	if err != nil {
 		err = fmt.Errorf("%v", err)
+		return
+	}
+	if len([]byte(contextname)) > DOT_ID_MAX_LENGTH_V2 {
+		err = fmt.Errorf("Dot Block: The Context name length must less than %v: \"%v\"", DOT_ID_MAX_LENGTH_V2, contextname)
 		return
 	}
 	contextid := base.GetSha1Sum(contextname)
@@ -394,7 +425,6 @@ func (bop *BlockOp) AddOneContext(dotid string, contextname string) (err error) 
 			bop.dots_lock_lock.Lock()
 			bop.dots_lock[dotid].Lock.Unlock()
 			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			delete(bop.dots_lock, dotid) // 既然删除了dot，那就不用保留这个锁了
 			bop.dots_lock_lock.Unlock()
 		}()
 	}
@@ -510,9 +540,78 @@ func (bop *BlockOp) AddOneContext(dotid string, contextname string) (err error) 
 
 }
 
-// 删除一个context
-
 // 读取所有context名称
+func (bop *BlockOp) ShowAllContextName(dotid string) (index []string, err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
+	fname, fpath, err := bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	//加读锁
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock:     new(sync.RWMutex),
+		}
+	}
+	// 如果没有锁就加内部锁，如果是外部锁，就不管了
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[dotid].LockTime = time.Now()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+		bop.dots_lock[dotid].Lock.RLock()
+		defer func() {
+			bop.dots_lock_lock.Lock()
+			bop.dots_lock[dotid].Lock.RUnlock()
+			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+			bop.dots_lock_lock.Unlock()
+		}()
+	}
+	bop.dots_lock_lock.Unlock()
+
+	// 看dot存不存在
+	ishave := base.FileExist(fpath + fname + "_body")
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the dot \"%v\".", dotid)
+		return
+	}
+
+	// 读context索引
+	context_b, context_b_l, err := bop.readAfter(1+8, fpath+fname+"_context_index")
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	index = make([]string, 0)
+	var i int64 = 0
+	b_len := int64(context_b_l)
+	for {
+		if i >= b_len {
+			break
+		}
+		// 状态
+		status_b := context_b[i : i+1]
+		status_uint := iendecode.BytesToUint8(status_b)
+		status := _DotContextIndex_Status(status_uint)
+		name_b := context_b[i+1 : i+1+DOT_ID_MAX_LENGTH_V2]
+		name := bop.byte255ToId(name_b)
+		if status != DOT_CONTEXT_INDEX_DEL {
+			index = append(index, name)
+		}
+		i = i + 1 + DOT_ID_MAX_LENGTH_V2
+	}
+
+	return
+}
+
+// 删除一个context
 
 // 修改一个context的up信息（名称+数据）
 
@@ -558,14 +657,17 @@ func (bop *BlockOp) OutRUnlock(id string) (err error) {
 // 完整读取context的索引
 func (bop *BlockOp) readContextIndex(b []byte) (index []ContextIndex) {
 	index = make([]ContextIndex, 0)
-	var i int64
+	var i int64 = 0
 	b_len := int64(len(b))
-	for i = 0; i < b_len; i++ {
+	for {
+		if i >= b_len {
+			break
+		}
 		// 状态
-		status_b := b[i:1]
+		status_b := b[i : i+1]
 		status_uint := iendecode.BytesToUint8(status_b)
 		status := _DotContextIndex_Status(status_uint)
-		name_b := b[i+1 : DOT_ID_MAX_LENGTH_V2]
+		name_b := b[i+1 : i+1+DOT_ID_MAX_LENGTH_V2]
 		name := bop.byte255ToId(name_b)
 		oneIndex := ContextIndex{
 			Status:      status,
