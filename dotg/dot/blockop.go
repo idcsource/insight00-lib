@@ -368,6 +368,147 @@ func (bop *BlockOp) DropDot(dotid string) (err error) {
 }
 
 // 增加一个context
+func (bop *BlockOp) AddOneContext(dotid string, contextname string) (err error) {
+	fname, fpath, err := bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+	contextid := base.GetSha1Sum(contextname)
+
+	//加锁
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock:     new(sync.RWMutex),
+		}
+	}
+	// 如果没有锁就加内部锁，如果是外部锁，就不管了
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[dotid].LockTime = time.Now()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+		bop.dots_lock[dotid].Lock.Lock()
+		defer func() {
+			bop.dots_lock_lock.Lock()
+			bop.dots_lock[dotid].Lock.Unlock()
+			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+			delete(bop.dots_lock, dotid) // 既然删除了dot，那就不用保留这个锁了
+			bop.dots_lock_lock.Unlock()
+		}()
+	}
+	bop.dots_lock_lock.Unlock()
+
+	// 看dot存不存在
+	ishave := base.FileExist(fpath + fname + "_body")
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the dot \"%v\".", dotid)
+		return
+	}
+
+	// 看context是否存在，这个简单处理，只看文件是否存在
+	ishave = base.FileExist(fpath + fname + "_context_" + contextid)
+	// 存在就不再干什么了
+	if ishave == true {
+		err = fmt.Errorf("Dot Block: The Context \"%v\" is already exist.", dotid)
+		return
+	}
+
+	// 开始准备空的context
+	// 准备基本头部数据
+	dotversion_b := iendecode.Uint8ToBytes(DOT_NOW_DEFAULT_VERSION) // dot程序版本
+	opversion_b := iendecode.Uint64ToBytes(0)                       // 操作版本
+	//打开写入context文件
+	context_f, err := os.OpenFile(fpath+fname+"_context_"+contextid, os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	defer context_f.Close()
+	// 开始写
+	_, err = context_f.Write(dotversion_b) // 应用版本
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	_, err = context_f.Write(opversion_b) // 操作版本
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	_, err = context_f.Write(bop.idToByte255(contextname)) // ContextName
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	_, err = context_f.Write(bop.idToByte255("")) // Context的空up关系
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	_, err = context_f.Write(iendecode.Uint8ToBytes(uint8(DOT_CONTEXT_UP_DOWN_INDEX_NOTHING))) // Context的默认配置状态
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	_, err = context_f.Write(iendecode.Uint64ToBytes(uint64(0))) // Context的空up配置数据长度
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	uldata := make([]byte, DOT_CONTENT_MAX_IN_DATA_V2)
+	_, err = context_f.Write(uldata) // Context的空up配置数据
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+
+	// 更新索引
+	context_index_f, err := os.OpenFile(fpath+fname+"_context_index", os.O_RDWR, 0600)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	defer context_index_f.Close()
+	// 获取操作版本，并且+1
+	opversion_b = make([]byte, 8)
+	read_n, err := context_index_f.ReadAt(opversion_b, 1)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	if read_n != 8 {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	opversion := iendecode.BytesToUint64(opversion_b)
+	opversion++
+	opversion_b = iendecode.Uint64ToBytes(opversion)
+	// 写新的操作版本
+	_, err = context_index_f.WriteAt(opversion_b, 1)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	// 查找文件末尾的偏移量
+	theend, _ := context_index_f.Seek(0, os.SEEK_END)
+	// 写入默认的状态
+	_, err = context_index_f.WriteAt(iendecode.Uint8ToBytes(uint8(DOT_CONTEXT_INDEX_NOTHING)), theend)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	// 写入上下文关系的名字
+	_, err = context_index_f.WriteAt(bop.idToByte255(contextname), theend+1)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+
+	return
+
+}
 
 // 删除一个context
 

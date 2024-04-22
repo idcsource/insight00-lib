@@ -16,7 +16,7 @@ const (
 
 	DOT_ID_MAX_LENGTH_V2 = 255 // dot版本号为1与2的id最大长度
 
-	DOT_CONTENT_MAX_IN_DATA_V2 = 255 // dot版本号为2的content内连配置数据的最大长度
+	DOT_CONTENT_MAX_IN_DATA_V2 = 1000 // dot版本号为2的content内连配置数据的最大长度
 )
 
 // dot上下文关系总索引的状态位
