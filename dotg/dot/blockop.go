@@ -8,6 +8,7 @@ package dot
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -316,34 +317,52 @@ func (bop *BlockOp) DropDot(dotid string) (err error) {
 	}
 	bop.dots_lock_lock.Unlock()
 
-	// 看存不存在
-	ishave := base.FileExist(fpath + fname + "_body")
-	// 如果不存在这个文件，正好就什么都不处理
-	if ishave != true {
-		return
-	}
+	/*
+		// 看存不存在
+		ishave := base.FileExist(fpath + fname + "_body")
+		// 如果不存在这个文件，正好就什么都不处理
+		if ishave != true {
+			return
+		}
 
-	// 读context索引
-	context_b, context_b_l, err := bop.readAfter(1+8, fpath+fname+"_context_index")
+		// 读context索引
+		context_b, context_b_l, err := bop.readAfter(1+8, fpath+fname+"_context_index")
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 如果没有就不用管了，如果有就要把context的列表都读出来
+		if context_b_l != 0 {
+			context_index := bop.readContextIndex(context_b)
+			// 开始删文件了
+			for cindex := range context_index {
+				the_c_name := fpath + fname + "_context_" + base.GetSha1Sum(context_index[cindex].ContextName)
+				os.Remove(the_c_name)
+				the_c_d_name := fpath + fname + "_context_" + base.GetSha1Sum(context_index[cindex].ContextName) + "_del_index"
+				os.Remove(the_c_d_name)
+				the_c_up_data_name := fpath + fname + "_context_" + base.GetSha1Sum(context_index[cindex].ContextName) + "_UP"
+				os.Remove(the_c_up_data_name)
+				// TODO Down关系的外部数据文件删除
+			}
+		}
+		// 开始删文件了
+		os.Remove(fpath + fname + "_context_index")
+		os.Remove(fpath + fname + "_context_del_index")
+		os.Remove(fpath + fname + "_body")
+	*/
+
+	// 不读，直接删
+	files, err := filepath.Glob(fpath + fname + "_*")
 	if err != nil {
 		err = fmt.Errorf("Dot Block: %v", err)
 		return
 	}
-	// 如果没有就不用管了，如果有就要把context的列表都读出来
-	if context_b_l != 0 {
-		context_index := bop.readContextIndex(context_b)
-		// 开始删文件了
-		for cindex := range context_index {
-			the_c_name := fpath + fname + "_context_" + base.GetSha1Sum(context_index[cindex].ContextName)
-			os.Remove(the_c_name)
-			the_c_d_name := fpath + fname + "_context_" + base.GetSha1Sum(context_index[cindex].ContextName) + "_del_index"
-			os.Remove(the_c_d_name)
+	for _, f := range files {
+		if err = os.Remove(f); err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
 		}
 	}
-	// 开始删文件了
-	os.Remove(fpath + fname + "_context_index")
-	os.Remove(fpath + fname + "_context_del_index")
-	os.Remove(fpath + fname + "_body")
 
 	return
 }
