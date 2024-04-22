@@ -14,3 +14,9 @@ type Context struct {
 	UpData  []byte            // 上下文的上游配置数据
 	Down    map[string][]byte // 上下文的下游ID，以及携带的配置数据
 }
+
+// 上下文关系索引，对应文件：(dot id的40位sha1散列)_context_index
+type ContextIndex struct {
+	Status      _DotContextIndex_Status // 标记的状态
+	ContextName string                  // 上下文关系的名称
+}
