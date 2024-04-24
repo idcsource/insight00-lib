@@ -7,6 +7,7 @@ package dot
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -772,11 +773,19 @@ func (bop *BlockOp) DropOneContext(dotid, contextname string) (err error) {
 				return
 			}
 			// 删除context的相关文件
-			if err = os.Remove(fpath + fname + "_context_" + contextid); err != nil {
+			var context_files []string
+			context_files, err = filepath.Glob(fpath + fname + "_context_" + contextid + "_*")
+			if err != nil {
 				err = fmt.Errorf("Dot Block: %v", err)
 				return
 			}
-			if err = os.Remove(fpath + fname + "_context_" + contextid + "_del_index"); err != nil {
+			for _, f := range context_files {
+				if err = os.Remove(f); err != nil {
+					err = fmt.Errorf("Dot Block: %v", err)
+					return
+				}
+			}
+			if err = os.Remove(fpath + fname + "_context_" + contextid); err != nil {
 				err = fmt.Errorf("Dot Block: %v", err)
 				return
 			}
@@ -791,10 +800,249 @@ func (bop *BlockOp) DropOneContext(dotid, contextname string) (err error) {
 }
 
 // 修改一个context的up信息（名称+数据）
+func (bop *BlockOp) UpdateContextUp(dotid, contextname, upname string, updata []byte) (err error) {
+	return
+}
 
 // 修改一个context的up信息（只名称）
+func (bop *BlockOp) UpdateContextUpName(dotid, contextname, upname string) (err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
+	fname, fpath, err := bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	//加锁
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock:     new(sync.RWMutex),
+		}
+	}
+	// 如果没有锁就加内部锁，如果是外部锁，就不管了
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[dotid].LockTime = time.Now()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+		bop.dots_lock[dotid].Lock.Lock()
+		defer func() {
+			bop.dots_lock_lock.Lock()
+			bop.dots_lock[dotid].Lock.Unlock()
+			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+			bop.dots_lock_lock.Unlock()
+		}()
+	}
+	bop.dots_lock_lock.Unlock()
+
+	// 看dot存不存在
+	ishave := base.FileExist(fpath + fname + "_body")
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the dot \"%v\".", dotid)
+		return
+	}
+
+	// 看context存在不存在
+	contextid := base.GetSha1Sum(contextname)
+	ishave = base.FileExist(fpath + fname + "_context_" + contextid)
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the context \"%v\" in dot \"%v\"", contextname, dotid)
+		return
+	}
+
+	// 打开数据文件写入
+	context_f, err := os.OpenFile(fpath+fname+"_context_"+contextid, os.O_RDWR, 0600)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	defer context_f.Close()
+
+	// 获取操作版本，并且+1
+	opversion_b := make([]byte, 8)
+	read_n, err := context_f.ReadAt(opversion_b, 1)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	if read_n != 8 {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	opversion := iendecode.BytesToUint64(opversion_b)
+	opversion++
+	opversion_b = iendecode.Uint64ToBytes(opversion)
+
+	// 编码名字
+	upname_b := bop.idToByte255(upname)
+
+	// 写新的索引操作版本
+	_, err = context_f.WriteAt(opversion_b, 1)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	// 写入编码名字
+	_, err = context_f.WriteAt(upname_b, 1+8+DOT_ID_MAX_LENGTH_V2)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+
+	return
+}
 
 // 修改一个context的up信息（只数据）
+func (bop *BlockOp) UpdateContextUpData(dotid, contextname string, updata []byte) (err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
+	fname, fpath, err := bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	//加锁
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock:     new(sync.RWMutex),
+		}
+	}
+	// 如果没有锁就加内部锁，如果是外部锁，就不管了
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[dotid].LockTime = time.Now()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+		bop.dots_lock[dotid].Lock.Lock()
+		defer func() {
+			bop.dots_lock_lock.Lock()
+			bop.dots_lock[dotid].Lock.Unlock()
+			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+			bop.dots_lock_lock.Unlock()
+		}()
+	}
+	bop.dots_lock_lock.Unlock()
+
+	// 看dot存不存在
+	ishave := base.FileExist(fpath + fname + "_body")
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the dot \"%v\".", dotid)
+		return
+	}
+
+	// 看context存在不存在
+	contextid := base.GetSha1Sum(contextname)
+	ishave = base.FileExist(fpath + fname + "_context_" + contextid)
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the context \"%v\" in dot \"%v\"", contextname, dotid)
+		return
+	}
+
+	// 打开数据文件写入
+	context_f, err := os.OpenFile(fpath+fname+"_context_"+contextid, os.O_RDWR, 0600)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	defer context_f.Close()
+
+	// 获取操作版本，并且+1
+	opversion_b := make([]byte, 8)
+	read_n, err := context_f.ReadAt(opversion_b, 1)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	if read_n != 8 {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	opversion := iendecode.BytesToUint64(opversion_b)
+	opversion++
+	opversion_b = iendecode.Uint64ToBytes(opversion)
+
+	// 如果存在外部数据文件，先删了再说
+	ishave = base.FileExist(fpath + fname + "_context_" + contextid + "_UP")
+	if ishave == true {
+		if err = os.Remove(fpath + fname + "_context_" + contextid + "_UP"); err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+	}
+	// 查看数据长度
+	data_len := len(updata)
+	if data_len <= DOT_CONTENT_MAX_IN_DATA_V2 {
+		// 如果data长度可以
+		// 写入数据状态
+		_, err = context_f.WriteAt(iendecode.Uint8ToBytes(uint8(DOT_CONTEXT_UP_DOWN_INDEX_INDATA)), 1+8+DOT_ID_MAX_LENGTH_V2+DOT_ID_MAX_LENGTH_V2)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 写入数据长度
+		_, err = context_f.WriteAt(iendecode.Uint64ToBytes(uint64(data_len)), 1+8+DOT_ID_MAX_LENGTH_V2+DOT_ID_MAX_LENGTH_V2+1)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 写入数据
+		_, err = context_f.WriteAt(updata, 1+8+DOT_ID_MAX_LENGTH_V2+DOT_ID_MAX_LENGTH_V2+1+8)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+	} else {
+		// 如果data长度太长
+
+		// 把内容写入文件
+		err = ioutil.WriteFile(fpath+fname+"_context_"+contextid+"_UP", updata, 0600)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 写入数据状态
+		_, err = context_f.WriteAt(iendecode.Uint8ToBytes(uint8(DOT_CONTEXT_UP_DOWN_INDEX_OUTDATA)), 1+8+DOT_ID_MAX_LENGTH_V2+DOT_ID_MAX_LENGTH_V2)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 写入数据长度
+		_, err = context_f.WriteAt(iendecode.Uint64ToBytes(uint64(data_len)), 1+8+DOT_ID_MAX_LENGTH_V2+DOT_ID_MAX_LENGTH_V2+1)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+	}
+	// 写入长度
+	_, err = context_f.WriteAt(iendecode.Uint64ToBytes(uint64(data_len)), 1+8+DOT_ID_MAX_LENGTH_V2+DOT_ID_MAX_LENGTH_V2+1)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+
+	// 写新的索引操作版本
+	_, err = context_f.WriteAt(opversion_b, 1)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+
+	return
+}
+
+// 读取一个context的up信息(名称)
+
+// 读取一个context的up信息(数据)
 
 // 增加一个context的down信息（名称+数据）
 

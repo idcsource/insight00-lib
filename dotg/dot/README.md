@@ -48,7 +48,7 @@ Block实现了运行状态标记和对Dot级别的读写锁，确保一个Block�
 
 文件名： (dot id的40位sha1散列)_context_(上下文关系id的40位sha1散列)
 
-数据结构： uint8的应用版本(1bit) | uint64的操作版本(8bit)| 上下文关系名(200bit定长) | UP关系的dot id(255bit定长) | uint8的UP关系配置数据状态 | uint64的UP关系配置数据实际长度(8bit) | UP关系配置数据(500bit定长) | uint8的状态位 | DOWN关系名(200bit定长) | uint64的DOWN关系配置数据实际长度(8bit) | DOWN关系配置数据(500bit定长) | uint8的状态位 | DOWN关系名(00bit定长) | uint64的DOWN关系配置数据实际长度(8bit) | DOWN关系配置数据(500bit定长) | ……
+数据结构： uint8的应用版本(1bit) | uint64的操作版本(8bit)| 上下文关系名(200bit定长) | UP关系的dot id(200bit定长) | uint8的UP关系配置数据状态 | uint64的UP关系配置数据实际长度(8bit) | UP关系配置数据(500bit定长) | uint8的状态位 | DOWN关系名(200bit定长) | uint64的DOWN关系配置数据实际长度(8bit) | DOWN关系配置数据(500bit定长) | uint8的状态位 | DOWN关系名(200bit定长) | uint64的DOWN关系配置数据实际长度(8bit) | DOWN关系配置数据(500bit定长) | ……
 
 说明：状态位见类型 _DotContextUpDownIndex_Status
 
@@ -66,7 +66,7 @@ Block实现了运行状态标记和对Dot级别的读写锁，确保一个Block�
 
 ### dot单个上下文关系中DOWN超出500bit配置数据时
 
-文件名： (dot id的40位sha1散列)_context_(上下文关系id的40位sha1散列)_DOWN_(DOWN的index位置编号)
+文件名： (dot id的40位sha1散列)_context_(上下文关系id的40位sha1散列)_DOWN_(DOWN的关系名的40位sha1散列)
 
 数据结构：完整数据
 
