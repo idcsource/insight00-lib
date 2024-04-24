@@ -564,6 +564,9 @@ func (bop *BlockOp) AddContext(dotid string, contextname string) (err error) {
 }
 
 // 读取所有context名称
+func (bop *BlockOp) ReadAllContextName(dotid string) (index []string, err error) {
+	return bop.ShowAllContextName(dotid)
+}
 func (bop *BlockOp) ShowAllContextName(dotid string) (index []string, err error) {
 	if bop.running == false {
 		err = fmt.Errorf("The Dot Block is Stop!")
