@@ -36,6 +36,9 @@ type DotLock struct {
 }
 
 // 新建一个dot
+func (bop *BlockOp) AddDot(id string, data []byte) (fpath string, fname string, err error) {
+	return bop.NewDot(id, data)
+}
 func (bop *BlockOp) NewDot(id string, data []byte) (fpath string, fname string, err error) {
 	if bop.running == false {
 		err = fmt.Errorf("The Dot Block is Stop!")
@@ -391,7 +394,7 @@ func (bop *BlockOp) DropDot(dotid string) (err error) {
 }
 
 // 增加一个context
-func (bop *BlockOp) AddOneContext(dotid string, contextname string) (err error) {
+func (bop *BlockOp) AddContext(dotid string, contextname string) (err error) {
 	if bop.running == false {
 		err = fmt.Errorf("The Dot Block is Stop!")
 		return
@@ -632,10 +635,10 @@ func (bop *BlockOp) ShowAllContextName(dotid string) (index []string, err error)
 }
 
 // 删除一个context
-func (bop *BlockOp) DelOneContext(dotid, contextname string) (err error) {
-	return bop.DropOneContext(dotid, contextname)
+func (bop *BlockOp) DelContext(dotid, contextname string) (err error) {
+	return bop.DropContext(dotid, contextname)
 }
-func (bop *BlockOp) DropOneContext(dotid, contextname string) (err error) {
+func (bop *BlockOp) DropContext(dotid, contextname string) (err error) {
 	if bop.running == false {
 		err = fmt.Errorf("The Dot Block is Stop!")
 		return
@@ -1041,8 +1044,191 @@ func (bop *BlockOp) UpdateContextUpData(dotid, contextname string, updata []byte
 }
 
 // 读取一个context的up信息(名称)
+func (bop *BlockOp) ReadContextUpName(dotid, contextname string) (upname string, err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
+	fname, fpath, err := bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	// 加锁，读锁
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock:     new(sync.RWMutex),
+		}
+	}
+	// 如果没有锁就加内部锁，如果是外部锁，就不管了
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[dotid].LockTime = time.Now()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+		bop.dots_lock[dotid].Lock.RLock()
+		defer func() {
+			bop.dots_lock_lock.Lock()
+			bop.dots_lock[dotid].Lock.RUnlock()
+			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+			bop.dots_lock_lock.Unlock()
+		}()
+	}
+	bop.dots_lock_lock.Unlock()
+
+	// 看dot存在否
+	fname_data := fname + "_body"
+	ishave := base.FileExist(fpath + fname_data)
+	// 如果不存在就返回错误
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the dot \"%v\".", dotid)
+		return
+	}
+	// 看context存在不存在
+	contextid := base.GetSha1Sum(contextname)
+	ishave = base.FileExist(fpath + fname + "_context_" + contextid)
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the context \"%v\" in dot \"%v\"", contextname, dotid)
+		return
+	}
+
+	// 打开文件
+	context_f, err := os.OpenFile(fpath+fname+"_context_"+contextid, os.O_RDONLY, 0600)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+
+	// 获取名字
+	upname_b := make([]byte, DOT_ID_MAX_LENGTH_V2)
+	read_n, err := context_f.ReadAt(upname_b, 1+8+DOT_ID_MAX_LENGTH_V2)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	if read_n != DOT_ID_MAX_LENGTH_V2 {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	upname = bop.byte255ToId(upname_b)
+
+	return
+}
 
 // 读取一个context的up信息(数据)
+func (bop *BlockOp) ReadContextUpData(dotid, contextname string) (updata []byte, err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
+	fname, fpath, err := bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	// 加锁，读锁
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock:     new(sync.RWMutex),
+		}
+	}
+	// 如果没有锁就加内部锁，如果是外部锁，就不管了
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[dotid].LockTime = time.Now()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+		bop.dots_lock[dotid].Lock.RLock()
+		defer func() {
+			bop.dots_lock_lock.Lock()
+			bop.dots_lock[dotid].Lock.RUnlock()
+			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+			bop.dots_lock_lock.Unlock()
+		}()
+	}
+	bop.dots_lock_lock.Unlock()
+
+	// 看dot存在否
+	fname_data := fname + "_body"
+	ishave := base.FileExist(fpath + fname_data)
+	// 如果不存在就返回错误
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the dot \"%v\".", dotid)
+		return
+	}
+	// 看context存在不存在
+	contextid := base.GetSha1Sum(contextname)
+	ishave = base.FileExist(fpath + fname + "_context_" + contextid)
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the context \"%v\" in dot \"%v\"", contextname, dotid)
+		return
+	}
+
+	// 打开文件
+	context_f, err := os.OpenFile(fpath+fname+"_context_"+contextid, os.O_RDONLY, 0600)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+
+	// 获取data的保存状态
+	data_status_b := make([]byte, 1)
+	read_n, err := context_f.ReadAt(data_status_b, 1+8+DOT_ID_MAX_LENGTH_V2+DOT_ID_MAX_LENGTH_V2)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	if read_n != 1 {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	data_status := _DotContextUpDownIndex_Status(iendecode.BytesToUint8(data_status_b))
+	if data_status == DOT_CONTEXT_UP_DOWN_INDEX_NOTHING {
+		return // 没有数据就返回空
+	} else if data_status == DOT_CONTEXT_UP_DOWN_INDEX_INDATA {
+		// 数据在内部
+		// 读数据的长度
+		thelen_b := make([]byte, 8)
+		read_n, err = context_f.ReadAt(thelen_b, 1+8+DOT_ID_MAX_LENGTH_V2+DOT_ID_MAX_LENGTH_V2+1)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		if read_n != 8 {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		thelen := iendecode.BytesToInt(thelen_b)
+		// 读数据
+		updata = make([]byte, thelen)
+		read_n, err = context_f.ReadAt(updata, 1+8+DOT_ID_MAX_LENGTH_V2+DOT_ID_MAX_LENGTH_V2+1+8)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		if read_n != thelen {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+	} else if data_status == DOT_CONTEXT_UP_DOWN_INDEX_OUTDATA {
+		// 数据在外部，就直接读整个文件
+		updata, err = ioutil.ReadFile(fpath + fname + "_context_" + contextid + "_UP")
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+	} else {
+		return
+	}
+
+	return
+}
 
 // 增加一个context的down信息（名称+数据）
 
