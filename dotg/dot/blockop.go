@@ -394,6 +394,8 @@ func (bop *BlockOp) DropDot(dotid string) (err error) {
 }
 
 // 增加一个context
+//
+// 目前暂时不会去补index中早先被删除掉的位置
 func (bop *BlockOp) AddContext(dotid string, contextname string) (err error) {
 	if bop.running == false {
 		err = fmt.Errorf("The Dot Block is Stop!")
@@ -567,6 +569,8 @@ func (bop *BlockOp) AddContext(dotid string, contextname string) (err error) {
 func (bop *BlockOp) ReadAllContextName(dotid string) (index []string, err error) {
 	return bop.ShowAllContextName(dotid)
 }
+
+// 读取所有context名称
 func (bop *BlockOp) ShowAllContextName(dotid string) (index []string, err error) {
 	if bop.running == false {
 		err = fmt.Errorf("The Dot Block is Stop!")
@@ -1245,6 +1249,10 @@ func (bop *BlockOp) ReadContextUpData(dotid, contextname string) (updata []byte,
 }
 
 // 增加一个context的down信息（名称+数据）
+//
+// 如果有同名但被删除的位置，则去替代这个位置
+//
+// 如果有删除的空位（_del_index中记录），则占用记录中的第一个位置
 func (bop *BlockOp) AddContextDown(dotid, contextname, downname string, data []byte) (err error) {
 	if bop.running == false {
 		err = fmt.Errorf("The Dot Block is Stop!")
@@ -1347,8 +1355,22 @@ func (bop *BlockOp) AddContextDown(dotid, contextname, downname string, data []b
 
 	var write_i int64 // 写入位置
 	if exist == false {
-		// 如果彻底没有这个down，就把写入位置调到文件末尾
-		write_i, _ = context_f.Seek(0, os.SEEK_END)
+		// 如果彻底没有这个down
+		if len(del_list) == 0 {
+			//如果也没有被删除的空位置，就把写入位置调到文件末尾
+			write_i, _ = context_f.Seek(0, os.SEEK_END)
+		} else {
+			//否则选第一个空位置
+			write_i = 1 + 8 + DOT_ID_MAX_LENGTH_V2 + DOT_ID_MAX_LENGTH_V2 + 1 + 8 + DOT_CONTENT_MAX_IN_DATA_V2
+			write_i = write_i + (int64(del_list[0]) * (1 + DOT_ID_MAX_LENGTH_V2 + 8 + DOT_CONTENT_MAX_IN_DATA_V2))
+			// 并且去更新删除索引
+			err = bop.reDelIndex(fpath+fname+"_context_"+contextid+"_del_index", del_list, del_list[0], del_version+1)
+			if err != nil {
+				err = fmt.Errorf("Dot Block: %v", err)
+				return
+			}
+		}
+
 	} else {
 		// 如果有同名，但被删除了，则把写入位置调整到这个位置
 		write_i = int64(down_status.HardCount)
@@ -1454,6 +1476,21 @@ func (bop *BlockOp) AddContextDown(dotid, contextname, downname string, data []b
 	return
 }
 
+// 读所有的Down关系名称
+func (bop *BlockOp) ShowContextAllDownName(dotid, contextname string) (index []string, err error) {
+	return bop.ReadContextAllDownName(dotid, contextname)
+}
+
+// 读所有的Down关系名称
+func (bop *BlockOp) ReadContextAllDownName(dotid, contextname string) (index []string, err error) {
+	return
+}
+
+// 读一个down的数据
+func (bop *BlockOp) ReadContextOneDownData(dotid, contextname, downname string) (data []byte, err error) {
+	return
+}
+
 // 修改一个context的down信息（只数据）
 
 // 删除一个context的down信息
@@ -1464,25 +1501,133 @@ func (bop *BlockOp) DisplayDotLock() (dots_lock map[string]*DotLock) {
 }
 
 // 外部加锁
-func (bop *BlockOp) OutLock(id string) (err error) {
-	return
+func (bop *BlockOp) OutLock(dotid string) (err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
 
+	_, _, err = bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	//加锁
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock:     new(sync.RWMutex),
+		}
+	}
+	// 如果没有锁就加外部锁，如果是外部锁，就不管了
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[dotid].LockTime = time.Now()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_OUTSIDE
+		bop.dots_lock[dotid].Lock.Lock()
+	}
+	bop.dots_lock_lock.Unlock()
+
+	return
 }
 
 // 外部加读锁
-func (bop *BlockOp) OutRLock(id string) (err error) {
+func (bop *BlockOp) OutRLock(dotid string) (err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
+	_, _, err = bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	//加锁
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock:     new(sync.RWMutex),
+		}
+	}
+	// 如果没有锁就加外部锁，如果是外部锁，就不管了
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[dotid].LockTime = time.Now()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_OUTSIDE
+		bop.dots_lock[dotid].Lock.RLock()
+	}
+	bop.dots_lock_lock.Unlock()
+
 	return
 
 }
 
 // 外部解锁
-func (bop *BlockOp) OutUnlock(id string) (err error) {
-	return
+func (bop *BlockOp) OutUnlock(dotid string) (err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
 
+	_, _, err = bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	//加锁
+	bop.dots_lock_lock.Lock()
+	defer bop.dots_lock_lock.Unlock()
+
+	if _, have := bop.dots_lock[dotid]; have != true {
+		return
+	}
+	// 如果是外部锁
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_OUTSIDE {
+		bop.dots_lock[dotid].Lock.Unlock()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+	} else {
+		err = fmt.Errorf("This is not a outside lock!")
+		return
+	}
+
+	return
 }
 
 // 外部读解锁
-func (bop *BlockOp) OutRUnlock(id string) (err error) {
+func (bop *BlockOp) OutRUnlock(dotid string) (err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
+	_, _, err = bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	//加锁
+	bop.dots_lock_lock.Lock()
+	defer bop.dots_lock_lock.Unlock()
+
+	if _, have := bop.dots_lock[dotid]; have != true {
+		return
+	}
+	// 如果是外部锁
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_OUTSIDE {
+		bop.dots_lock[dotid].Lock.RUnlock()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+	} else {
+		err = fmt.Errorf("This is not a outside lock!")
+		return
+	}
+
 	return
 
 }
