@@ -713,27 +713,29 @@ func (bop *BlockOp) DropContext(dotid, contextname string) (err error) {
 	opversion++
 	opversion_b = iendecode.Uint64ToBytes(opversion)
 
-	// 打开删除索引文件
-	context_index_del_f, err := os.OpenFile(fpath+fname+"_context_del_index", os.O_RDWR, 0600)
-	if err != nil {
-		err = fmt.Errorf("Dot Block: %v", err)
-		return
-	}
-	defer context_index_del_f.Close()
-	// 获取操作版本，并且+1
-	del_opversion_b := make([]byte, 8)
-	del_read_n, err := context_index_del_f.ReadAt(del_opversion_b, 1)
-	if err != nil {
-		err = fmt.Errorf("Dot Block: %v", err)
-		return
-	}
-	if del_read_n != 8 {
-		err = fmt.Errorf("Dot Block: %v", err)
-		return
-	}
-	del_opversion := iendecode.BytesToUint64(del_opversion_b)
-	del_opversion++
-	del_opversion_b = iendecode.Uint64ToBytes(del_opversion)
+	/*
+		// 打开删除索引文件
+		context_index_del_f, err := os.OpenFile(fpath+fname+"_context_del_index", os.O_RDWR, 0600)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		defer context_index_del_f.Close()
+		// 获取操作版本，并且+1
+		del_opversion_b := make([]byte, 8)
+		del_read_n, err := context_index_del_f.ReadAt(del_opversion_b, 1)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		if del_read_n != 8 {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		del_opversion := iendecode.BytesToUint64(del_opversion_b)
+		del_opversion++
+		del_opversion_b = iendecode.Uint64ToBytes(del_opversion)
+	*/
 
 	// 遍历索引
 	context_b, context_b_l, err := bop.readAfterWithFile(1+8, context_index_f)
@@ -764,20 +766,29 @@ func (bop *BlockOp) DropContext(dotid, contextname string) (err error) {
 				err = fmt.Errorf("Dot Block: %v", err)
 				return
 			}
-			// 写新的删除索引操作版本
-			_, err = context_index_del_f.WriteAt(del_opversion_b, 1)
+
+			// 重整删除索引
+			err = bop.reAddDelIndexDirect(fpath+fname+"_context_del_index", index_i)
 			if err != nil {
 				err = fmt.Errorf("Dot Block: %v", err)
 				return
 			}
-			// 查找删除索引文件末尾的偏移量
-			theend, _ := context_index_del_f.Seek(0, os.SEEK_END)
-			// 写入index_i索引位置
-			_, err = context_index_del_f.WriteAt(iendecode.Uint64ToBytes(index_i), theend)
-			if err != nil {
-				err = fmt.Errorf("Dot Block: %v", err)
-				return
-			}
+			/*
+				// 写新的删除索引操作版本
+				_, err = context_index_del_f.WriteAt(del_opversion_b, 1)
+				if err != nil {
+					err = fmt.Errorf("Dot Block: %v", err)
+					return
+				}
+				// 查找删除索引文件末尾的偏移量
+				theend, _ := context_index_del_f.Seek(0, os.SEEK_END)
+				// 写入index_i索引位置
+				_, err = context_index_del_f.WriteAt(iendecode.Uint64ToBytes(index_i), theend)
+				if err != nil {
+					err = fmt.Errorf("Dot Block: %v", err)
+					return
+				}
+			*/
 			// 删除context的相关文件
 			var context_files []string
 			context_files, err = filepath.Glob(fpath + fname + "_context_" + contextid + "_*")
@@ -1234,6 +1245,214 @@ func (bop *BlockOp) ReadContextUpData(dotid, contextname string) (updata []byte,
 }
 
 // 增加一个context的down信息（名称+数据）
+func (bop *BlockOp) AddContextDown(dotid, contextname, downname string, data []byte) (err error) {
+	if bop.running == false {
+		err = fmt.Errorf("The Dot Block is Stop!")
+		return
+	}
+
+	fname, fpath, err := bop.findFilePath(dotid)
+	if err != nil {
+		err = fmt.Errorf("%v", err)
+		return
+	}
+
+	//加锁
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock:     new(sync.RWMutex),
+		}
+	}
+	// 如果没有锁就加内部锁，如果是外部锁，就不管了
+	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
+		bop.dots_lock[dotid].LockTime = time.Now()
+		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+		bop.dots_lock[dotid].Lock.Lock()
+		defer func() {
+			bop.dots_lock_lock.Lock()
+			bop.dots_lock[dotid].Lock.Unlock()
+			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+			bop.dots_lock_lock.Unlock()
+		}()
+	}
+	bop.dots_lock_lock.Unlock()
+
+	// 看dot存不存在
+	ishave := base.FileExist(fpath + fname + "_body")
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the dot \"%v\".", dotid)
+		return
+	}
+
+	// 看context存在不存在
+	contextid := base.GetSha1Sum(contextname)
+	ishave = base.FileExist(fpath + fname + "_context_" + contextid)
+	if ishave != true {
+		err = fmt.Errorf("Dot Block: Can not find the context \"%v\" in dot \"%v\"", contextname, dotid)
+		return
+	}
+	// 看downname是否符合
+	if downname == "" || len([]byte(downname)) > DOT_ID_MAX_LENGTH_V2 {
+		err = fmt.Errorf("Dot Block: The Context Down name length must less than %v: \"%v\"", DOT_ID_MAX_LENGTH_V2, downname)
+		return
+	}
+	downid := base.GetSha1Sum(downname)
+
+	// 获取down的删除索引
+	del_list, del_version, err := bop.readDelList(fpath + fname + "_context_" + contextid + "_del_index")
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+
+	// 打开Context文件的写入
+	context_f, err := os.OpenFile(fpath+fname+"_context_"+contextid, os.O_RDWR, 0600)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	defer context_f.Close()
+
+	// 获取所有down的信息
+	down_status_list, err := bop.readContextDownStatus(context_f)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+
+	// 查看down是否存在
+	exist, down_status := bop.ifDownExist(downname, down_status_list)
+	if exist == true && down_status.Status != DOT_CONTEXT_UP_DOWN_INDEX_DEL {
+		err = fmt.Errorf("Dot Block: The Context Down is exist: %v", downname)
+		return
+	}
+
+	// 获取操作版本，并且+1
+	opversion_b := make([]byte, 8)
+	read_n, err := context_f.ReadAt(opversion_b, 1)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	if read_n != 8 {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	opversion := iendecode.BytesToUint64(opversion_b)
+	opversion++
+	opversion_b = iendecode.Uint64ToBytes(opversion)
+
+	var write_i int64 // 写入位置
+	if exist == false {
+		// 如果彻底没有这个down，就把写入位置调到文件末尾
+		write_i, _ = context_f.Seek(0, os.SEEK_END)
+	} else {
+		// 如果有同名，但被删除了，则把写入位置调整到这个位置
+		write_i = int64(down_status.HardCount)
+		// 并且去更新删除索引
+		err = bop.reDelIndex(fpath+fname+"_context_"+contextid+"_del_index", del_list, down_status.HardIndex, del_version+1)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+	}
+
+	// 如果存在外部数据文件，先删了再说
+
+	ishave = base.FileExist(fpath + fname + "_context_" + contextid + "_DOWN_" + downid)
+	if ishave == true {
+		if err = os.Remove(fpath + fname + "_context_" + contextid + "_DOWN_" + downid); err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+	}
+
+	// 查看数据长度
+	data_len := len(data)
+	if data_len <= DOT_CONTENT_MAX_IN_DATA_V2 {
+		// 如果data长度可以
+		// 写入数据状态
+		_, err = context_f.WriteAt(iendecode.Uint8ToBytes(uint8(DOT_CONTEXT_UP_DOWN_INDEX_INDATA)), write_i)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 写入down的名字
+		downname_b := bop.idToByte255(downname)
+		_, err = context_f.WriteAt(downname_b, write_i+1)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 写入数据长度
+		_, err = context_f.WriteAt(iendecode.Uint64ToBytes(uint64(data_len)), write_i+1+DOT_ID_MAX_LENGTH_V2)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 先写空的数据占位置
+		uldata := make([]byte, DOT_CONTENT_MAX_IN_DATA_V2)
+		_, err = context_f.WriteAt(uldata, write_i+1+DOT_ID_MAX_LENGTH_V2+8)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 写入真实数据
+		_, err = context_f.WriteAt(data, write_i+1+DOT_ID_MAX_LENGTH_V2+8)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+	} else {
+		// 如果data长度太长
+
+		// 把内容写入文件
+		err = ioutil.WriteFile(fpath+fname+"_context_"+contextid+"_DOWN_"+downid, data, 0600)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+
+		// 写入数据状态
+		_, err = context_f.WriteAt(iendecode.Uint8ToBytes(uint8(DOT_CONTEXT_UP_DOWN_INDEX_OUTDATA)), write_i)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 写入down的名字
+		downname_b := bop.idToByte255(downname)
+		_, err = context_f.WriteAt(downname_b, write_i+1)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 写入数据长度
+		_, err = context_f.WriteAt(iendecode.Uint64ToBytes(uint64(data_len)), write_i+1+DOT_ID_MAX_LENGTH_V2)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		// 写空的数据占位置
+		uldata := make([]byte, DOT_CONTENT_MAX_IN_DATA_V2)
+		_, err = context_f.WriteAt(uldata, write_i+1+DOT_ID_MAX_LENGTH_V2+8)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+	}
+
+	// 写新的操作版本
+	_, err = context_f.WriteAt(opversion_b, 1)
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+
+	return
+}
 
 // 修改一个context的down信息（只数据）
 
@@ -1266,6 +1485,217 @@ func (bop *BlockOp) OutUnlock(id string) (err error) {
 func (bop *BlockOp) OutRUnlock(id string) (err error) {
 	return
 
+}
+
+// 直接追加删除索引
+func (bop *BlockOp) reAddDelIndexDirect(fname string, i uint64) (err error) {
+	index, opversion, err := bop.readDelList(fname)
+	if err != nil {
+		return
+	}
+	err = bop.reAddDelIndex(fname, index, i, opversion+1)
+	return
+}
+
+// 重新整理删除索引，加上一个被删除的
+func (bop *BlockOp) reAddDelIndex(fname string, index []uint64, i uint64, opversion uint64) (err error) {
+	new_index := append(index, i)
+
+	new_index_b, err := iendecode.SliceToBytes("[]uint64", new_index)
+	if err != nil {
+		return
+	}
+
+	// 把老的文件删了
+	if err = os.Remove(fname); err != nil {
+		return
+	}
+	//打开写入新的删除索引文件
+	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	// 开始写
+	dotversion_b := iendecode.Uint8ToBytes(DOT_NOW_DEFAULT_VERSION) // dot程序版本
+	opversion_b := iendecode.Uint64ToBytes(opversion)               // 操作版本
+	_, err = f.Write(dotversion_b)                                  // 应用版本
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	_, err = f.Write(opversion_b) // 操作版本
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	_, err = f.Write(new_index_b) // 索引
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	return
+}
+
+// 重新整理删除索引，去除不是删除状态的
+func (bop *BlockOp) reDelIndex(fname string, index []uint64, i uint64, opversion uint64) (err error) {
+	new_index := make([]uint64, 0)
+	for _, one := range index {
+		if one != i {
+			new_index = append(new_index, i)
+		}
+	}
+	new_index_b, err := iendecode.SliceToBytes("[]uint64", new_index)
+	if err != nil {
+		return
+	}
+
+	// 把老的文件删了
+	if err = os.Remove(fname); err != nil {
+		return
+	}
+	//打开写入新的删除索引文件
+	f, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	// 开始写
+	dotversion_b := iendecode.Uint8ToBytes(DOT_NOW_DEFAULT_VERSION) // dot程序版本
+	opversion_b := iendecode.Uint64ToBytes(opversion)               // 操作版本
+	_, err = f.Write(dotversion_b)                                  // 应用版本
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	_, err = f.Write(opversion_b) // 操作版本
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	_, err = f.Write(new_index_b) // 索引
+	if err != nil {
+		err = fmt.Errorf("Dot Block: %v", err)
+		return
+	}
+	return
+}
+
+// 查看down是否存在
+func (bop *BlockOp) ifDownExist(downname string, list []ContextDownStatus) (exist bool, status ContextDownStatus) {
+	exist = false
+	for _, one := range list {
+		if one.Name == downname {
+			exist = true
+			status = one
+			return
+		}
+	}
+
+	return
+}
+
+// 返回完整的被删除列表，直接打开文件全读出来
+func (bop *BlockOp) readDelList(fname string) (list []uint64, opversion uint64, err error) {
+	f_b, err := ioutil.ReadFile(fname)
+	if err != nil {
+		return
+	}
+	opversion_b := f_b[1 : 1+8]
+	opversion = iendecode.BytesToUint64(opversion_b)
+	list = make([]uint64, 0)
+	if len(f_b) == 0 {
+		return
+	}
+	if len(f_b[1+8:]) == 0 {
+		return
+	}
+	list_i, err := iendecode.BytesToSlice("[]uint64", f_b[1+8:])
+	if err != nil {
+		//err = fmt.Errorf("22 %v", err)
+		return
+	}
+	list = list_i.([]uint64)
+
+	return
+}
+
+// 返回完整的Context内Down关系状态索引
+func (bop *BlockOp) readContextDownStatus(f *os.File) (d_index []ContextDownStatus, err error) {
+	d_index = make([]ContextDownStatus, 0)
+	var hard_index uint64 = 0 // 物理索引位置
+	f_status, err := f.Stat()
+	if err != nil {
+		return
+	}
+
+	var i int64 = 1 + 8 + DOT_ID_MAX_LENGTH_V2 + DOT_ID_MAX_LENGTH_V2 + 1 + 8 + DOT_CONTENT_MAX_IN_DATA_V2 // 字节计数，从down开始
+	b_len := f_status.Size()                                                                               // 数据总长
+	down_len := b_len - (1 + 8 + DOT_ID_MAX_LENGTH_V2 + DOT_ID_MAX_LENGTH_V2 + 1 + 8 + DOT_CONTENT_MAX_IN_DATA_V2)
+
+	// 看长度是否正确
+	if down_len != 0 && down_len%(1+DOT_ID_MAX_LENGTH_V2+8+DOT_CONTENT_MAX_IN_DATA_V2) != 0 {
+		err = fmt.Errorf("The Data's length is wrong.")
+		return
+	}
+
+	for {
+		if i >= b_len {
+			break
+		}
+		var read_n int
+		// 获取状态
+		status_b := make([]byte, 1)
+		read_n, err = f.ReadAt(status_b, i)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		if read_n != 1 {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		status_uint := iendecode.BytesToUint8(status_b)
+		status := _DotContextUpDownIndex_Status(status_uint)
+		// 获取名字
+		name_b := make([]byte, DOT_ID_MAX_LENGTH_V2)
+		read_n, err = f.ReadAt(name_b, i+1)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		if read_n != DOT_ID_MAX_LENGTH_V2 {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		name := bop.byte255ToId(name_b)
+		// 获取data长度
+		dlen_b := make([]byte, 8)
+		read_n, err = f.ReadAt(dlen_b, i+1+DOT_ID_MAX_LENGTH_V2)
+		if err != nil {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		if read_n != 8 {
+			err = fmt.Errorf("Dot Block: %v", err)
+			return
+		}
+		dlen := iendecode.BytesToUint64(dlen_b)
+
+		one := ContextDownStatus{
+			HardIndex: hard_index,
+			HardCount: uint64(i),
+			Name:      name,
+			Status:    status,
+			DataLen:   dlen,
+		}
+		d_index = append(d_index, one)
+
+		i = i + 1 + DOT_ID_MAX_LENGTH_V2 + 8 + DOT_CONTENT_MAX_IN_DATA_V2
+		hard_index++
+	}
+
+	return
 }
 
 // 完整读取context的索引

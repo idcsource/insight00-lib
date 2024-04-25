@@ -20,3 +20,12 @@ type ContextIndex struct {
 	Status      _DotContextIndex_Status // 标记的状态
 	ContextName string                  // 上下文关系的名称
 }
+
+// Context中Down的状态
+type ContextDownStatus struct {
+	HardIndex uint64                        //索引的物理索引编号（不管是否删除）
+	HardCount uint64                        // 索引的物理起始字节
+	Name      string                        // Down的名字
+	Status    _DotContextUpDownIndex_Status // 状态
+	DataLen   uint64                        // 数据长度
+}
