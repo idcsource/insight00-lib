@@ -1,6 +1,6 @@
 // Insight 0+0 [ 洞悉 0+0 ]
-// InDimensions Construct Source [ 忆黛蒙逝·建造源 ] -> idcsource@gmail.com
-// Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
+// InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
+// Stephen Fire Meditation Qin [ 火志溟 ] -> stephenfmqin@gmail.com
 // This source code is governed by GNU LGPL v3 license
 
 package ns
@@ -11,12 +11,12 @@ import (
 	"github.com/idcsource/insight00-lib/iendecode"
 )
 
-// 修改、删除、读取某个down都用这个
+// 新建Context，删除Context，修改、删除、读取某个up和down都用这个
 type Change_One_Down struct {
 	DotName     string
 	ContextName string
 	DownName    string
-	DownValue   string
+	DownValue   []byte
 }
 
 func (c *Change_One_Down) MarshalBinary() (data []byte, err error) {
@@ -41,12 +41,11 @@ func (c *Change_One_Down) MarshalBinary() (data []byte, err error) {
 	buf.Write(dn_b_l_b)
 	buf.Write(dn_b)
 	// DownValue
-	dv_b := []byte(c.DownValue)
-	dv_b_l := len(dv_b)
+	dv_b_l := len(c.DownValue)
 	dv_b_l_b := iendecode.Uint64ToBytes(uint64(dv_b_l))
 	buf.Write(dv_b_l_b)
 	if dv_b_l != 0 {
-		buf.Write(dv_b)
+		buf.Write(c.DownValue)
 	}
 
 	data = buf.Bytes()
@@ -82,8 +81,7 @@ func (c *Change_One_Down) UnmarshalBinary(data []byte) (err error) {
 	dv_b_len_b := buf.Next(8)
 	dv_b_len := iendecode.BytesToUint64(dv_b_len_b)
 	if dv_b_len != 0 {
-		dv_b := buf.Next(int(dv_b_len))
-		c.DownValue = string(dv_b)
+		c.DownValue := buf.Next(int(dv_b_len))
 	}
 
 	return
