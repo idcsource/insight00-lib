@@ -45,7 +45,7 @@
 
 6. 通过SetNotFound()方法修改默认的404处理。
 
-7. 通过AddStatic()方法添加静态资源路径，url是浏览器用哪个路径进行访问，path则是相对于前面static的服务器存放位置。例如，static的配置为“/home/web/static/”，而这个路径下有abc和bcd两个路径存放静态文件，那么可以通过AddStatic("st1","abc")和AddStatic("st2","bcd")来注册，浏览器将可以通过http://domain/st1/xxx和http://domain/st2/xxx访问到这两个路径下来的具体静态文件。
+7. 通过AddStatic()方法添加静态资源路径，url是浏览器用哪个路径进行访问，path则是相对于前面static的服务器存放位置。例如，static的配置为“/home/web/static/”，而这个路径下有abc和bcd两个路径存放静态文件，那么可以通过AddStatic("st1","abc")和AddStatic("st2","bcd")来注册，浏览器将可以通过http://domain/st1/xxx 和http://domain/st2/xxx 访问到这两个路径下来的具体静态文件。
 
 ### 启动服务
 
@@ -53,7 +53,7 @@
 
 ### 配置路由详解
 
-需要通过InitRouter()初始化路由之后才能启动web服务，此时当浏览器直接访问http://domain或默认的http://domain/Index时，则由注册的FloorInterface接口执行实例进行执行，并在浏览器上显示返回的页面。
+需要通过InitRouter()初始化路由之后才能启动web服务，此时当浏览器直接访问http://domain 或默认的http://domain/Index 时，则由注册的FloorInterface接口执行实例进行执行，并在浏览器上显示返回的页面。
 
 你需要通过InitRouter()所返回的根节点，通过增加门节点、普通节点、空节点逐级构建节点树，或在某个节点树的末尾再注册一个静态文件节点。
 
@@ -61,15 +61,15 @@
 
 通过*NodeTree.AddNode(name, mark, floor, config)方法增加一个普通节点。其中name可以用一个对你友好的好任何名字，mark则是相对访问路径，floor则是符合FloorInterface接口的执行实例，config则是jconf的针对这个节点的配置文件。
 
-假设此时你位于根节点，你新增节点的mark输入的是“NewsList”，则这个节点的浏览器访问路径则为：http://domain/NewsList。
+假设此时你位于根节点，你新增节点的mark输入的是“NewsList”，则这个节点的浏览器访问路径则为：http://domain/NewsList 。
 
-添加成为节点后，方法将会返回此节点下的节点树，你可以在此处继续添加下层节点。比如你在此处再添加一个mark是“SoftIntroduce”的节点，则浏览器访问路径则是：http://domain/NewsList/SoftIntroduce。
+添加成为节点后，方法将会返回此节点下的节点树，你可以在此处继续添加下层节点。比如你在此处再添加一个mark是“SoftIntroduce”的节点，则浏览器访问路径则是：http://domain/NewsList/SoftIntroduce 。
 
 #### 门节点
 
 通过*NodeTree.AddDoor(name, mark, floordoor, config)方法增加一个门节点。floor则是符合FloorDoorInterface接口的执行实例，其他与普通节点一样。门节点记录了一组平级的普通节点执行实例。
 
-假设此时你位于根节点，你新增门节点的mark输入的是“Products”，而这个门节点记录了“Index”“List”“Detail”三个执行实例，那么浏览器访问路径将分别为：http://domain/Products/Index，http://domain/Products/List，http://domain/Products/Detail。
+假设此时你位于根节点，你新增门节点的mark输入的是“Products”，而这个门节点记录了“Index”“List”“Detail”三个执行实例，那么浏览器访问路径将分别为：http://domain/Products/Index ，http://domain/Products/List ，http://domain/Products/Detail 。
 
 添加成为节点后，方法将会返回此节点下的节点树，你仍然可以在此处继续添加下层节点，但请确保下层节点的mark不要与门节点中出现的同名。
 
@@ -77,7 +77,7 @@
 
 通过*NodeTree.AddEmpty(name, mark)方法增加一个空节点。空节点无法独立使用，必须在返回的节点树下增加可用的普通节点、门节点或静态文件节点。
 
-假设此时你位于根节点，你新增空节点的mark输入的是“About”，则浏览器访问路径则为http://domain/About，但这是一个空节点，直接访问将返回404。
+假设此时你位于根节点，你新增空节点的mark输入的是“About”，则浏览器访问路径则为http://domain/About ，但这是一个空节点，直接访问将返回404。
 
 #### 静态文件节点
 
@@ -85,7 +85,7 @@
 
 ### GET风格
 
-本Web服务器使用http://domain/Page1/Page2/:key1=value1/:key2=value2/的形式记录get值，并且通过Runtime.UrlRequest提供给普通节点使用。
+本Web服务器使用http://domain/Page1/Page2/:key1=value1/:key2=value2/ 的形式记录get值，并且通过Runtime.UrlRequest提供给普通节点使用。
 
 ### 运行时数据
 
