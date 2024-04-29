@@ -87,6 +87,19 @@
 
 本Web服务器使用http://domain/Page1/Page2/:key1=value1/:key2=value2/ 的形式记录get值，并且通过Runtime.UrlRequest提供给普通节点使用。
 
+### POST处理
+
+在节点、执行点中，你可以自己从变量r中（也就是*http.Request）自己获取。比如首先执行r.ParseFrom()或r.ParseMultipartForm()，然后再通过r.Form、r.PostFrom、r.FormValue()等方式读取。然后再使用base包里的InputProcessor进行检查和危险字符过滤。
+
+也可以使用本webs包提供的Field字段工具，这个可以直接从*http.Request获取字段，并根据提供的配置文件对字段进行检查和危险字符过滤。配置文件使用jconf包来实现，例子如下：
+
+	{
+	"字段名1": "ture, 类型, 显示出来的名字, 具体说明信息, 最小值, 最大值"   # ture为启用，不启用则为false
+	}
+
+但请注意，此套Field工具还有不完善的地方，功能并不完整。
+
+
 ### 运行时数据
 
 本Web服务器提供了许多运行时环境数据，具体在const_struct.go中都有注明。

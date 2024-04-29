@@ -151,11 +151,65 @@ func (fd *FormData) getOneFieldConfig(field *FieldConfig, config []string) (err 
 				continue
 			}
 		case 1:
+			switch ocf {
+			case "text":
+				field.Type = FIELD_FORM_TEXT
+				break
+			case "textarea":
+				field.Type = FIELD_FORM_TEXTAREA
+				break
+			case "markdown":
+				field.Type = FIELD_FORM_MARKDOWN
+				break
+			case "editor":
+				field.Type = FIELD_FORM_EDITOR
+				break
+			case "mark":
+				field.Type = FIELD_FORM_MARK
+				break
+			case "path":
+				field.Type = FIELD_FORM_PATH
+				break
+			case "link":
+				field.Type = FIELD_FORM_LINK
+				break
+			case "email":
+				field.Type = FIELD_FORM_EMAIL
+				break
+			case "file":
+				field.Type = FIELD_FORM_FILE
+				break
+			case "time":
+				field.Type = FIELD_FORM_TIME
+				break
+			case "date":
+				field.Type = FIELD_FORM_DATE
+				break
+			case "int":
+				field.Type = FIELD_FORM_INT
+				break
+			case "float":
+				field.Type = FIELD_FORM_FLOAT
+				break
+			case "money":
+				field.Type = FIELD_FORM_MONEY
+				break
+			case "password":
+				field.Type = FIELD_FORM_PASSWORD
+				break
+			case "password_2":
+				field.Type = FIELD_FORM_PASSWORD_TWO
+				break
+			case "emun":
+				field.Type = FIELD_FORM_ENUM_STRING
+				break
+			}
+		case 2:
 			//显示名
 			field.DisName = ocf
-		case 2:
-			field.Info = ocf
 		case 3:
+			field.Info = ocf
+		case 4:
 			//最小值
 			min, err := strconv.ParseInt(ocf, 10, 64)
 			if err != nil {
@@ -164,7 +218,7 @@ func (fd *FormData) getOneFieldConfig(field *FieldConfig, config []string) (err 
 			if min > field.Min {
 				field.Min = min
 			}
-		case 4:
+		case 5:
 			//最大值
 			max, err := strconv.ParseInt(ocf, 10, 64)
 			if err != nil {
