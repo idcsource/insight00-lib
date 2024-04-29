@@ -37,11 +37,11 @@
 
 2. 通过RegMultiDB()方法来注册多个扩展数据库。
 
-3. 通过RegExt()方法来注册扩展，扩展接受所有interface{}类型，使用时需要自己转换格式，如果要注册其他数据方法，也可以在这里注册。
+3. 通过RegExt()方法来注册扩展，扩展接受所有interface{}类型，如果要注册其他数据方法，可以在这里注册。使用时可以用GetExt()取回。
 
-4. 通过RegExecPoint()方法来注册执行点，执行点需要符合ExecPointer接口。
+4. 通过RegExecPoint()方法来注册执行点，执行点需要符合ExecPointer接口，可以在任何地方通过ExecPoint()去调用，但只返回错误信息。
 
-5. 通过ViewPolymer()方法来注册视图聚合，视图聚合需要符合ViewPolymerExecer接口。
+5. 通过ViewPolymer()方法来注册视图聚合器，视图聚合器需要符合ViewPolymerExecer接口。
 
 6. 通过SetNotFound()方法修改默认的404处理。
 
@@ -98,3 +98,14 @@
 	UrlRequest   map[string]string //Url请求的整理，风格为:id=1/:type=notype
 	Log          *logs.Logs        // 日志，也就是新建web实例时提供的日志
 
+### 关于视图聚合
+
+视图聚合是为了方便实现网站页面中重复出现的部件的处理，例如页面的头部和尾部，只需要写一个或几个聚合器就可以在全站共用。
+
+当路由器找到需要执行的普通节点后，执行程序将尝试查看这个节点是否配置了视图聚合，通过访问FloorInterface接口中的ViewPolymer()方法。如果没有配置视图聚合，则执行程序将按照正常的流程执行这个节点，也就是交由FloorInterface接口中的ExecHTTP()来处理后续行为。
+
+如果执行程序发现这个节点配置了视图聚合，则会去尝试执行视图聚合。此时执行程序将会执行FloorInterface接口中的ViewStream()方法，接受返回的数据流以及要求的聚合器名（需要在之前注册过），并将数据流等信息推给聚合器处理，而聚合器也可以要求返回数据流进入另一个聚合器继续聚合。
+
+### 如何去写普通节点、404节点
+
+在源码const_struct.go文件中定义了FloorInterface接口和Floor数据类型，在源码floor.go文件中提供了Floor的原型。通常情况下，你自己的普通节点和404节点应该首先继承Floor，之后再按照需要改写自己的ExecHTTP()、ViewPolymer()或ViewStream()方法。
