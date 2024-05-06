@@ -107,7 +107,7 @@
 	AllRoutePath string            //整个的RoutePath，也就是除域名外的完整路径
 	NowRoutePath []string          //AllRoutePath经过层级路由之后剩余的部分
 	RealNode     string            //当前节点的树名，如/node1/node2，如果没有使用节点则此处为空
-	MyConfig     *jconf.JsonConf   //当前节点的配置文件，从ConfigTree中获取，如当前节点没有配置文件，则去寻找父节点，直到载入站点的配置文件
+	MyConfig     *jconf.JsonConf   //当前节点的配置文件
 	UrlRequest   map[string]string //Url请求的整理，风格为:id=1/:type=notype
 	Log          *logs.Logs        // 日志，也就是新建web实例时提供的日志
 
@@ -122,3 +122,17 @@
 ### 如何去写普通节点、404节点
 
 在源码const_struct.go文件中定义了FloorInterface接口和Floor数据类型，在源码floor.go文件中提供了Floor的原型。通常情况下，你自己的普通节点和404节点应该首先继承Floor，之后再按照需要改写自己的ExecHTTP()、ViewPolymer()或ViewStream()方法。
+
+### 关于普通节点和门节点的复用
+
+对于一个站点来说，不可避免会出现某些路径下的功能类似或一样的情况。比如不同类型的新闻，展现方式和功能都类似。对于此类情况，你可以使用同一个普通节点或门节点的代码。在添加普通节点或门节点的时候，会被要求提供jconf的配置文件，并通过运行时数据提供给当前运行的节点，你可以用配置文件来告诉代码自己在当前节点下的运行方式。
+
+### 关于自动跳转节点
+
+本Webs服务器还提供了一个MoveToFloor的特殊普通节点，其实现了FloorInterface接口，可以直接使用，并作为普通节点注册进路由中，但注册时需要提供一个跳转节点的路径，例如：
+
+	route_tree.AddDoor("自动跳转", "jump", &webs.MoveToFloor{Url: "/Admin/login"}, nil)
+	
+程序将在被执行到此节点时，直接给浏览器发送跳转的303指令。
+
+这个功能在通常情况下是没用的。

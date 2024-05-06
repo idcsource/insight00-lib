@@ -81,7 +81,7 @@ type Runtime struct {
 	AllRoutePath string            //整个的RoutePath，也就是除域名外的完整路径
 	NowRoutePath []string          //AllRoutePath经过层级路由之后剩余的部分
 	RealNode     string            //当前节点的树名，如/node1/node2，如果没有使用节点则此处为空
-	MyConfig     *jconf.JsonConf   //当前节点的配置文件，从ConfigTree中获取，如当前节点没有配置文件，则去寻找父节点，直到载入站点的配置文件
+	MyConfig     *jconf.JsonConf   //当前节点的配置文件
 	UrlRequest   map[string]string //Url请求的整理，风格为:id=1/:type=notype
 	Log          *logs.Logs        // 日志
 }
@@ -94,7 +94,7 @@ type FloorInterface interface {
 	ViewStream() (stream string, order string, data interface{})
 }
 
-//控制器原型的数据类型
+// 控制器原型的数据类型
 type Floor struct {
 	W  http.ResponseWriter
 	R  *http.Request
