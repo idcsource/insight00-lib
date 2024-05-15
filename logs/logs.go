@@ -19,7 +19,7 @@ func NewLogs() (logs *Logs) {
 func (logs *Logs) SetRuntimeLog(prefix string, maxnum int) (err error) {
 	rtl := NewRuntimeLog(maxnum)
 	prefix = prefix + " "
-	runlogs := log.New(rtl, prefix, log.Ldate|log.Ltime)
+	runlogs := log.New(rtl, prefix, log.Ldate|log.Ltime|log.Lmicroseconds)
 	logs.runtimelog = rtl
 	logs.logs = runlogs
 	return
@@ -32,7 +32,7 @@ func (logs *Logs) SetFileLog(prefix string, filename string) (err error) {
 		return
 	}
 	prefix = prefix + " "
-	flogs := log.New(fl, prefix, log.Ldate|log.Ltime)
+	flogs := log.New(fl, prefix, log.Ldate|log.Ltime|log.Lmicroseconds)
 	logs.logs = flogs
 	return
 }

@@ -8,6 +8,7 @@ package logs
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/idcsource/insight00-lib/base"
 )
@@ -22,6 +23,16 @@ func NewFileLog(filename string) (fl *FileLog, err error) {
 	}
 	fl = &FileLog{
 		file: files,
+	}
+	return
+}
+
+// 写入一条标准格式的日志
+func (fl *FileLog) WriteLog(log string) (err error) {
+	log = time.Now().Format("2006-01-02 15:04:05.000") + " : " + log + "\n"
+	_, err = fl.file.Write([]byte(log))
+	if err != nil {
+		err = fmt.Errorf("logs: %v", err)
 	}
 	return
 }
