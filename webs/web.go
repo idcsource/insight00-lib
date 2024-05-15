@@ -18,10 +18,9 @@ import (
 )
 
 // 创建一个Web，db数据库和log日志可以为nil
-func NewWeb(config *jconf.JsonConf, log *logs.Logs) (web *Web) {
+func NewWeb(config *jconf.JsonConf, log logs.Logser) (web *Web) {
 	if log == nil {
-		log = logs.NewLogs()
-		log.SetRuntimeLog("Web", 1000)
+		log, _ = logs.NewRunLoger(100)
 	}
 	web = &Web{
 		local:       base.LocalPath(""),
@@ -31,7 +30,7 @@ func NewWeb(config *jconf.JsonConf, log *logs.Logs) (web *Web) {
 		execpoint:   make(map[string]ExecPointer),
 		viewpolymer: make(map[string]ViewPolymerExecer),
 		log:         log,
-		router:      newRouter(log),
+		router:      newRouter(),
 	}
 	// 检查静态资源地址是不是有
 	static, err := web.config.GetString("static")
@@ -130,7 +129,7 @@ func (web *Web) Start() (err error) {
 	// 如果没有初始化路由
 	if web.router.router_ok == false {
 		err = fmt.Errorf("webs[Web]Start: The Router not initialization.")
-		web.log.PrintLog(err)
+		web.log.WriteLog(err.Error())
 		return
 	}
 
@@ -140,7 +139,7 @@ func (web *Web) Start() (err error) {
 	port, err := web.config.GetString("port")
 	if err != nil {
 		err = fmt.Errorf("webs[Web]Start: The config port not be set.")
-		web.log.PrintLog(err)
+		web.log.WriteLog(err.Error())
 		return
 	}
 	// 检查是http还是https
@@ -157,7 +156,7 @@ func (web *Web) Start() (err error) {
 		thekey, e3 = web.config.GetString("sslkey")
 		if e2 != nil || e3 != nil {
 			err = fmt.Errorf("webs[Web]Start: The SSL cert or key not be set !")
-			web.log.PrintLog(err)
+			web.log.WriteLog(err.Error())
 			return
 		}
 	}
@@ -173,14 +172,14 @@ func (web *Web) Start() (err error) {
 		}
 		if err != nil {
 			err = fmt.Errorf("webs[Web]Start: Can not start the web server: %v", err)
-			web.log.PrintLog(err)
+			web.log.WriteLog(err.Error())
 			return
 		}
 	}()
 	return
 }
 
-//HTTP的路由，提供给"net/http"包使用
+// HTTP的路由，提供给"net/http"包使用
 func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 	//对进程数的控制
 	web.max_routine <- true

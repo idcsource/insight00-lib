@@ -131,7 +131,7 @@
 
 本Webs服务器还提供了一个MoveToFloor的特殊普通节点，其实现了FloorInterface接口，可以直接使用，并作为普通节点注册进路由中，但注册时需要提供一个跳转节点的路径，例如：
 
-	route_tree.AddDoor("自动跳转", "jump", &webs.MoveToFloor{Url: "/Admin/login"}, nil)
+	route_tree.AddNode("自动跳转", "jump", &webs.MoveToFloor{Url: "/Admin/login"}, nil)
 	
 程序将在被执行到此节点时，直接给浏览器发送跳转的303指令。
 

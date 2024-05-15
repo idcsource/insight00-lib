@@ -10,11 +10,10 @@ import (
 
 	"github.com/idcsource/insight00-lib/base"
 	"github.com/idcsource/insight00-lib/jconf"
-	"github.com/idcsource/insight00-lib/logs"
 )
 
 // 创建路由器，在NewWeb()中调用，不需要手动调用
-func newRouter(log *logs.Logs) (router *Router) {
+func newRouter() (router *Router) {
 	router = &Router{
 		router_ok:    false,
 		static_route: make(map[string]*regexp.Regexp),

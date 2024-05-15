@@ -52,7 +52,7 @@ type Web struct {
 	execpoint   map[string]ExecPointer       // 执行点
 	viewpolymer map[string]ViewPolymerExecer // view polymer's interface
 	router      *Router                      // 路由器
-	log         *logs.Logs                   // 运行日志
+	log         logs.Logser                  // 运行日志
 	max_routine chan bool                    // 最大并发
 }
 
@@ -83,7 +83,7 @@ type Runtime struct {
 	RealNode     string            //当前节点的树名，如/node1/node2，如果没有使用节点则此处为空
 	MyConfig     *jconf.JsonConf   //当前节点的配置文件
 	UrlRequest   map[string]string //Url请求的整理，风格为:id=1/:type=notype
-	Log          *logs.Logs        // 日志
+	Log          *logs.Logser      // 日志
 }
 
 // FloorInterface 此为控制器接口的定义

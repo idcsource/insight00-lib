@@ -1,6 +1,6 @@
-github.com/idcsource/insight00-lib/base v0.0.0-20240428062806-d9ab722b2258 h1:KVpJ65/WZjHWON+sDv/R93RqYMDbwXa4CK3V3te853s=
-github.com/idcsource/insight00-lib/base v0.0.0-20240428062806-d9ab722b2258/go.mod h1:hp2WZ5DCPJ1ksr/UHBBsf1BoCEDZLSC1igt3Pudg4ng=
-github.com/idcsource/insight00-lib/jconf v0.0.0-20240428062806-d9ab722b2258 h1:jaBsNw+cfHTGABiQM65ccYjc8BbXvGL0vzFxIGKyg88=
-github.com/idcsource/insight00-lib/jconf v0.0.0-20240428062806-d9ab722b2258/go.mod h1:fX2MbIrW2y13SjbdJ/UIX8vaKc+28EzoicJDOImKI/Q=
-github.com/idcsource/insight00-lib/logs v0.0.0-20240428062806-d9ab722b2258 h1:Q3My7devTWRZokUBfKgONHoZOX0ZNKisXHn+MBXPzFs=
-github.com/idcsource/insight00-lib/logs v0.0.0-20240428062806-d9ab722b2258/go.mod h1:SjAYxyte3wWi4GBsa/T6SbwzCZInn+bwSarW/RMh20o=
+github.com/idcsource/insight00-lib/base v0.0.0-20240515013159-d7489126c142 h1:cDpVhh4DCshG/bXx7OE63R7I9nPo+KAsBmPTPqKmT6U=
+github.com/idcsource/insight00-lib/base v0.0.0-20240515013159-d7489126c142/go.mod h1:hp2WZ5DCPJ1ksr/UHBBsf1BoCEDZLSC1igt3Pudg4ng=
+github.com/idcsource/insight00-lib/jconf v0.0.0-20240515013159-d7489126c142 h1:Y33cX78frHXmmXVAGI5rpkFj4OYaDa79OlPJLFb0uGQ=
+github.com/idcsource/insight00-lib/jconf v0.0.0-20240515013159-d7489126c142/go.mod h1:5eZAHiE2Nvi6rH5jxEofV3AYZy2NAbCqDYn+YWPHdmc=
+github.com/idcsource/insight00-lib/logs v0.0.0-20240515013159-d7489126c142 h1:cTb2YkfnOxnQ9S/SmOvTolfnNJuYmtO2al4IDHKksdM=
+github.com/idcsource/insight00-lib/logs v0.0.0-20240515013159-d7489126c142/go.mod h1:voPOhdi0XlcZGe/lVqNhZSh3YShEJqMNV+vazb3Fu94=
