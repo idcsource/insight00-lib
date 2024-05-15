@@ -93,23 +93,3 @@ func (rl *RunLoger) Close() {
 	rl.now = 0
 	rl.logs = make([]string, rl.max)
 }
-
-// 写入一条运行时日志
-func (rl *RunLoger) Write(p []byte) (n int, err error) {
-
-	l := string(p)
-
-	//加写锁
-	rl.lock.Lock()
-	defer rl.lock.Unlock()
-
-	// 写入一条log
-	rl.logs[rl.now] = l
-	rl.now++
-	if rl.now == rl.max {
-		rl.now = 0
-	}
-
-	n = len(string(p))
-	return
-}

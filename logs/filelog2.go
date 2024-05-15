@@ -126,13 +126,3 @@ func (fl *FileLoger) ReadLast() (l string, err error) {
 func (fl *FileLoger) Close() {
 	fl.file.Close()
 }
-
-// 写入一条日志
-func (fl *FileLoger) Write(p []byte) (n int, err error) {
-	n, err = fl.file.Write(p)
-	if err != nil {
-		err = fmt.Errorf("logs: %v", err)
-		return
-	}
-	return
-}
