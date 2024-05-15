@@ -190,8 +190,10 @@ func BackupBlock(path, name, backupname string) (err error) {
 			os.Stderr,
 		},
 	}
+
+	backupname = base.LocalFile(backupname)
 	// 执行外部压缩命令
-	_, err = os.StartProcess("/bin/tar", []string{"tar", "-zcPf", backupname, "--exclude=running", "-C", path, name}, procAttr)
+	_, err = os.StartProcess("/bin/tar", []string{"tar", "-zcf", backupname, "--exclude=running", "-C", path, name}, procAttr)
 	if err != nil {
 		err = fmt.Errorf("Error %v starting process!", err)
 	}
