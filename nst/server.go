@@ -17,7 +17,7 @@ import (
 // A tcp server
 type Server struct {
 	execer     ConnExecer       // The Server's connect execution object
-	elogs      *logs.Logs       // the error log
+	elogs      logs.Logser      // the error log
 	port       string           // listen port
 	tls        bool             // if use tls encryption
 	tls_config *tls.Config      // the tls encryption config
@@ -26,7 +26,7 @@ type Server struct {
 }
 
 // Create a new server for tcp
-func NewServer(execer ConnExecer, port string, elogs *logs.Logs) (s *Server, err error) {
+func NewServer(execer ConnExecer, port string, elogs logs.Logser) (s *Server, err error) {
 	s = &Server{
 		execer: execer,
 		elogs:  elogs,
@@ -77,7 +77,7 @@ func (s *Server) gostart() {
 		}
 		connecter, err := s.listen.AcceptTCP()
 		if err != nil {
-			s.elogs.PrintLog("nst[Server]listen: ", err)
+			s.elogs.WriteLog(fmt.Errorf("nst[Server]listen: %v", err).Error())
 			continue
 		}
 		go s.doConnect(connecter)
@@ -102,7 +102,7 @@ func (s *Server) doConnect(conn *net.TCPConn) {
 	stat, err := conn_exec.Transmission.GetStat()
 	if err != nil {
 		if err.Error() != "EOF" {
-			s.elogs.PrintLog(err)
+			s.elogs.WriteLog(err.Error())
 		}
 		return
 	}
@@ -111,7 +111,7 @@ func (s *Server) doConnect(conn *net.TCPConn) {
 		err = conn_exec.Transmission.SendStat(uint8(SEND_STAT_OK))
 		if err != nil {
 			if err.Error() != "EOF" {
-				s.elogs.PrintLog(err)
+				s.elogs.WriteLog(err.Error())
 			}
 			return
 		}
@@ -123,18 +123,18 @@ func (s *Server) doConnect(conn *net.TCPConn) {
 		err = conn_exec.Transmission.SendStat(uint8(SEND_STAT_OK))
 		if err != nil {
 			if err.Error() != "EOF" {
-				s.elogs.PrintLog(err)
+				s.elogs.WriteLog(err.Error())
 			}
 			return
 		}
 		// do something
 		s.doLongConn(conn_exec)
 	} else {
-		s.elogs.PrintLog("can not to do this, not SEND_STAT_CONN_SHORT or SEND_STAT_CONN_LONG")
+		s.elogs.WriteLog("can not to do this, not SEND_STAT_CONN_SHORT or SEND_STAT_CONN_LONG")
 		err = conn_exec.Transmission.SendStat(uint8(SEND_STAT_NOT_OK))
 		if err != nil {
 			if err.Error() != "EOF" {
-				s.elogs.PrintLog(err)
+				s.elogs.WriteLog(err.Error())
 			}
 			return
 		}
@@ -156,7 +156,7 @@ func (s *Server) doLongConn(ce *ConnExec) {
 		stat, err := ce.Transmission.GetStat()
 		if err != nil {
 			if err.Error() != "EOF" {
-				s.elogs.PrintLog(err)
+				s.elogs.WriteLog(err.Error())
 			}
 			return
 		}
@@ -164,7 +164,7 @@ func (s *Server) doLongConn(ce *ConnExec) {
 			err = ce.Transmission.SendStat(uint8(SEND_STAT_NOT_OK))
 			if err != nil {
 				if err.Error() != "EOF" {
-					s.elogs.PrintLog(err)
+					s.elogs.WriteLog(err.Error())
 				}
 				return
 			}
@@ -177,17 +177,17 @@ func (s *Server) doLongConn(ce *ConnExec) {
 			err = ce.Transmission.SendStat(uint8(SEND_STAT_NOT_OK))
 			if err != nil {
 				if err.Error() != "EOF" {
-					s.elogs.PrintLog(err)
+					s.elogs.WriteLog(err.Error())
 				}
 			}
 			ce.Transmission.Close()
 			return
 		} else {
-			s.elogs.PrintLog("can not to do this, not SEND_STAT_DATA_GOON or SEND_STAT_CONN_CLOSE")
+			s.elogs.WriteLog("can not to do this, not SEND_STAT_DATA_GOON or SEND_STAT_CONN_CLOSE")
 			err = ce.Transmission.SendStat(uint8(SEND_STAT_NOT_OK))
 			if err != nil {
 				if err.Error() != "EOF" {
-					s.elogs.PrintLog(err)
+					s.elogs.WriteLog(err.Error())
 				}
 				return
 			}
