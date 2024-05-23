@@ -1,6 +1,6 @@
 // Insight 0+0 [ 洞悉 0+0 ]
-// InDimensions Construct Source [ 忆黛蒙逝·建造源 ] -> idcsource@gmail.com
-// Stephen Fire Meditation Qin [ 火志溟 ] -> firemeditation@gmail.com
+// InDimensions Construct Source [ 忆黛蒙逝·建造源 ]
+// Stephen Fire Meditation Qin [ 火志溟 ] -> stephenfmqin@gmail.com
 // This source code is governed by GNU LGPL v3 license
 
 // The configure use JSON
@@ -175,6 +175,47 @@ func (j *JsonConf) GetEnum(node string) (em []string, err error) {
 	for i, one := range em {
 		em[i] = strings.TrimSpace(one)
 	}
+	return
+}
+
+// 从某个节点捡出配置，并返回数组，返回为[]interface{}
+func (j *JsonConf) GetArray(node string) (ar []interface{}, err error) {
+	val, err := j.GetValue(node)
+	if err != nil {
+		return
+	}
+	var ok bool
+	ar, ok = val.([]interface{})
+	if ok != true {
+		err = fmt.Errorf("jconf: The \"%v\" value not a bool", node)
+		return
+	}
+	return
+}
+
+// 从某个节点捡出配置，并返回你想要的数据结构，使用方法如下：
+//
+//	type Blocks struct {
+//		Name  string `json:"name"`
+//		Path  string `json:"path"`
+//		Token string `json:"token"`
+//	}
+//
+//	var blocc []Blocks
+//	err = conf.GetStruct("blocks", &blocc)
+func (j *JsonConf) GetStruct(node string, v interface{}) (err error) {
+	val, err := j.GetValue(node)
+	if err != nil {
+		return
+	}
+
+	data, err := json.Marshal(val)
+	if err != nil {
+		err = fmt.Errorf("jconf: %v", err)
+		return
+	}
+
+	err = json.Unmarshal(data, &v)
 	return
 }
 
