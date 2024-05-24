@@ -17,6 +17,7 @@ import (
 	"github.com/idcsource/insight00-lib/base"
 )
 
+// 创建配置文件对象
 func NewJsonConf() (jsonconf *JsonConf) {
 	jsonconf = &JsonConf{
 		json: make(map[string]interface{}),
@@ -24,7 +25,7 @@ func NewJsonConf() (jsonconf *JsonConf) {
 	return
 }
 
-// 从文件中读取配置
+// 从JSON文件中读取配置
 func (j *JsonConf) ReadFile(fname string) (err error) {
 	fname = base.LocalFile(fname)
 	jsonstream, err := ioutil.ReadFile(fname) //这里返回的已经是[]byte
@@ -38,7 +39,7 @@ func (j *JsonConf) ReadFile(fname string) (err error) {
 	return nil
 }
 
-// 从字符串中读取配置
+// 从JSON字符串中读取配置
 func (j *JsonConf) ReadString(jsonstream string) (err error) {
 	err = j.doMap([]byte(jsonstream), j.json)
 	if err != nil {
@@ -161,7 +162,7 @@ func (j *JsonConf) GetBool(node string) (b bool, err error) {
 	return
 }
 
-// 从某个节点捡出配置，并返回枚举，枚举的样式为“a,b,c,d,e”的字符串，返回为[]string
+// 从某个节点捡出配置，并返回枚举，枚举的样式为“a,b,c,d,e”的用逗号分割的字符串，返回为[]string
 func (j *JsonConf) GetEnum(node string) (em []string, err error) {
 	val, err := j.GetValue(node)
 	if err != nil {
@@ -188,7 +189,7 @@ func (j *JsonConf) GetArray(node string) (ar []interface{}, err error) {
 	var ok bool
 	ar, ok = val.([]interface{})
 	if ok != true {
-		err = fmt.Errorf("jconf: The \"%v\" value not a bool", node)
+		err = fmt.Errorf("jconf: The \"%v\" value not a array", node)
 		return
 	}
 	return
@@ -266,14 +267,55 @@ func (j *JsonConf) SetValue(node string, value interface{}) (err error) {
 				err = fmt.Errorf("jconf: There is not have key \"%v\"", one)
 				return
 			}
-			j.json[one] = value
+			var strb []byte
+			strb, err = json.Marshal(value)
+			if err == nil {
+				onemap := make(map[string]interface{})
+				err = j.doMap(strb, onemap)
+				if err != nil {
+					onearray := make([]interface{}, 0)
+					err = json.Unmarshal(strb, &onearray)
+					if err != nil {
+						j.json[one] = value
+						err = nil
+					} else {
+						j.json[one] = onearray
+					}
+				} else {
+					j.json[one] = onemap
+				}
+			} else {
+				j.json[one] = value
+				err = nil
+			}
 		} else if i == (nodelen - 1) {
 			_, ok := oneNodeNode[one]
 			if ok != true {
 				err = fmt.Errorf("jconf: There is not have key \"%v\"", one)
 				return
 			}
-			oneNodeNode[one] = value
+			var strb []byte
+			strb, err = json.Marshal(value)
+			if err == nil {
+				onemap := make(map[string]interface{})
+				err = j.doMap(strb, onemap)
+				if err != nil {
+					onearray := make([]interface{}, 0)
+					err = json.Unmarshal(strb, &onearray)
+					if err != nil {
+						oneNodeNode[one] = value
+						err = nil
+					} else {
+						oneNodeNode[one] = onearray
+					}
+				} else {
+					oneNodeNode[one] = onemap
+				}
+			} else {
+				oneNodeNode[one] = value
+				err = nil
+			}
+
 		} else {
 			_, ok := oneNodeNode[one]
 			if ok != true {
@@ -303,7 +345,27 @@ func (j *JsonConf) AddValueInRoot(name string, value interface{}) (err error) {
 		err = fmt.Errorf("jconf: The \"%v\" node name is already have", name)
 		return
 	}
-	j.json[name] = value
+	var strb []byte
+	strb, err = json.Marshal(value)
+	if err == nil {
+		onemap := make(map[string]interface{})
+		err = j.doMap(strb, onemap)
+		if err != nil {
+			onearray := make([]interface{}, 0)
+			err = json.Unmarshal(strb, &onearray)
+			if err != nil {
+				j.json[name] = value
+				err = nil
+			} else {
+				j.json[name] = onearray
+			}
+		} else {
+			j.json[name] = onemap
+		}
+	} else {
+		j.json[name] = value
+		err = nil
+	}
 	return
 }
 
@@ -347,7 +409,27 @@ func (j *JsonConf) AddValue(node string, name string, value interface{}) (err er
 				err = fmt.Errorf("jconf: The \"%v\" node name is already have", name)
 				return
 			}
-			oneNodeNode[name] = value
+			var strb []byte
+			strb, err = json.Marshal(value)
+			if err == nil {
+				onemap := make(map[string]interface{})
+				err = j.doMap(strb, onemap)
+				if err != nil {
+					onearray := make([]interface{}, 0)
+					err = json.Unmarshal(strb, &onearray)
+					if err != nil {
+						oneNodeNode[name] = value
+						err = nil
+					} else {
+						oneNodeNode[name] = onearray
+					}
+				} else {
+					oneNodeNode[name] = onemap
+				}
+			} else {
+				oneNodeNode[name] = value
+				err = nil
+			}
 		} else if i == (nodelen - 1) {
 			// 到头了
 			_, ok := oneNodeNode[one]
@@ -365,7 +447,27 @@ func (j *JsonConf) AddValue(node string, name string, value interface{}) (err er
 				err = fmt.Errorf("jconf: The \"%v\" node name is already have", name)
 				return
 			}
-			oneNodeNode[name] = value
+			var strb []byte
+			strb, err = json.Marshal(value)
+			if err == nil {
+				onemap := make(map[string]interface{})
+				err = j.doMap(strb, onemap)
+				if err != nil {
+					onearray := make([]interface{}, 0)
+					err = json.Unmarshal(strb, &onearray)
+					if err != nil {
+						oneNodeNode[one] = value
+						err = nil
+					} else {
+						oneNodeNode[one] = onearray
+					}
+				} else {
+					oneNodeNode[one] = onemap
+				}
+			} else {
+				oneNodeNode[one] = value
+				err = nil
+			}
 		} else {
 			// 开始了但没到头
 			_, ok := oneNodeNode[one]
