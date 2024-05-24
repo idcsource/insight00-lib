@@ -192,7 +192,12 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 	//将获得的URL用斜线拆分成[]string
 	urla, parameter := base.SplitUrl(httpr.URL.Path)
 	//准备基本的RunTime
-	rt := Runtime{AllRoutePath: httpr.URL.Path, NowRoutePath: urla, UrlRequest: parameter}
+	rt := Runtime{
+		AllRoutePath: httpr.URL.Path,
+		NowRoutePath: urla,
+		UrlRequest:   parameter,
+		WebConfig:    web.config,
+	}
 
 	//静态路由
 	static, have := web.router.getStatic(httpr.URL.Path)
