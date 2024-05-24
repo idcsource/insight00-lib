@@ -7,6 +7,7 @@
 package jconf
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -480,7 +481,13 @@ func (j *JsonConf) OutputJson() (str string, err error) {
 		err = fmt.Errorf("jconf: %v", err)
 		return
 	}
-	str = string(strb)
+	var out bytes.Buffer
+	err = json.Indent(&out, strb, "", "\t")
+	if err != nil {
+		err = fmt.Errorf("jconf: %v", err)
+		return
+	}
+	str = out.String()
 	return
 }
 
