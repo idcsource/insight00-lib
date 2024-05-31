@@ -24,6 +24,7 @@ type BlockOp struct {
 	deep           uint8               // block的路径深度，这两个都要与InitBlock一致
 	dots_lock      map[string]*DotLock // 正在操作的dot都会加上相应的锁，map的key为dot的id
 	dots_lock_lock *sync.RWMutex       // 避免操作上面的dot锁时有抢占，在对上面的锁修改时也要现锁定
+	lock_mode      _BlockDotLockMode   // 锁的管理方式
 	running        bool                // 是否在运行状态
 
 }
@@ -31,8 +32,8 @@ type BlockOp struct {
 // dot的操作锁
 type DotLock struct {
 	LockTime time.Time
-	LockType _BlockDotLockType // 锁的类型
-	Lock     *sync.RWMutex
+	//LockType _BlockDotLockType // 锁的类型
+	Lock *sync.RWMutex
 }
 
 // 新建一个dot
@@ -52,27 +53,8 @@ func (bop *BlockOp) NewDot(id string, data []byte) (fpath string, fname string, 
 	}
 
 	// 加锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[id]; have != true {
-		bop.dots_lock[id] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[id].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[id].LockTime = time.Now()
-		bop.dots_lock[id].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[id].Lock.Lock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[id].Lock.Unlock()
-			bop.dots_lock[id].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.lock(id)
+	defer bop.unlock(id)
 
 	// 确认文件
 	ishave_body := base.FileExist(fpath + fname + "_body")
@@ -171,27 +153,8 @@ func (bop *BlockOp) UpdateDotData(dotid string, data []byte) (err error) {
 	}
 
 	//加锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.Lock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.Unlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.lock(dotid)
+	defer bop.unlock(dotid)
 
 	// 构建文件名
 	fname_data := fname + "_body"
@@ -263,27 +226,8 @@ func (bop *BlockOp) ReadDotData(dotid string) (data []byte, len int64, err error
 	}
 
 	// 加锁，读锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.RLock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.RUnlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.rlock(dotid)
+	defer bop.runlock(dotid)
 
 	// 打开文件
 	fname_data := fname + "_body"
@@ -320,28 +264,8 @@ func (bop *BlockOp) DropDot(dotid string) (err error) {
 	}
 
 	//加锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.Lock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.Unlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			delete(bop.dots_lock, dotid) // 既然删除了dot，那就不用保留这个锁了
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.lock(dotid)
+	defer bop.unlock(dotid)
 
 	/*
 		// 看存不存在
@@ -414,27 +338,8 @@ func (bop *BlockOp) AddContext(dotid string, contextname string) (err error) {
 	contextid := base.GetSha1Sum(contextname)
 
 	//加锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.Lock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.Unlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.lock(dotid)
+	defer bop.unlock(dotid)
 
 	// 看dot存不存在
 	ishave := base.FileExist(fpath + fname + "_body")
@@ -584,27 +489,8 @@ func (bop *BlockOp) ShowAllContextName(dotid string) (index []string, err error)
 	}
 
 	//加读锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.RLock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.RUnlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.rlock(dotid)
+	defer bop.runlock(dotid)
 
 	// 看dot存不存在
 	ishave := base.FileExist(fpath + fname + "_body")
@@ -658,27 +544,8 @@ func (bop *BlockOp) DropContext(dotid, contextname string) (err error) {
 	}
 
 	//加锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.Lock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.Unlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.lock(dotid)
+	defer bop.unlock(dotid)
 
 	// 看dot存不存在
 	ishave := base.FileExist(fpath + fname + "_body")
@@ -839,27 +706,8 @@ func (bop *BlockOp) UpdateContextUpName(dotid, contextname, upname string) (err 
 	}
 
 	//加锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.Lock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.Unlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.lock(dotid)
+	defer bop.unlock(dotid)
 
 	// 看dot存不存在
 	ishave := base.FileExist(fpath + fname + "_body")
@@ -932,27 +780,8 @@ func (bop *BlockOp) UpdateContextUpData(dotid, contextname string, updata []byte
 	}
 
 	//加锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.Lock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.Unlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.lock(dotid)
+	defer bop.unlock(dotid)
 
 	// 看dot存不存在
 	ishave := base.FileExist(fpath + fname + "_body")
@@ -1069,27 +898,8 @@ func (bop *BlockOp) ReadContextUpName(dotid, contextname string) (upname string,
 	}
 
 	// 加锁，读锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.RLock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.RUnlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.rlock(dotid)
+	defer bop.runlock(dotid)
 
 	// 看dot存在否
 	fname_data := fname + "_body"
@@ -1144,27 +954,8 @@ func (bop *BlockOp) ReadContextUpData(dotid, contextname string) (updata []byte,
 	}
 
 	// 加锁，读锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.RLock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.RUnlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.rlock(dotid)
+	defer bop.runlock(dotid)
 
 	// 看dot存在否
 	fname_data := fname + "_body"
@@ -1260,27 +1051,8 @@ func (bop *BlockOp) AddContextDown(dotid, contextname, downname string, data []b
 	}
 
 	//加锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.Lock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.Unlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.lock(dotid)
+	defer bop.unlock(dotid)
 
 	// 看dot存不存在
 	ishave := base.FileExist(fpath + fname + "_body")
@@ -1489,27 +1261,8 @@ func (bop *BlockOp) ReadContextAllDownName(dotid, contextname string) (index []s
 	}
 
 	// 加锁，读锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.RLock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.RUnlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.rlock(dotid)
+	defer bop.runlock(dotid)
 
 	// 看dot存在否
 	fname_data := fname + "_body"
@@ -1564,27 +1317,8 @@ func (bop *BlockOp) ReadContextOneDownData(dotid, contextname, downname string) 
 	}
 
 	// 加锁，读锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.RLock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.RUnlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.rlock(dotid)
+	defer bop.runlock(dotid)
 
 	// 看dot存在否
 	fname_data := fname + "_body"
@@ -1677,27 +1411,8 @@ func (bop *BlockOp) UpdateContextDownData(dotid, contextname, downname string, d
 	}
 
 	//加锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.Lock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.Unlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.lock(dotid)
+	defer bop.unlock(dotid)
 
 	// 看dot存不存在
 	ishave := base.FileExist(fpath + fname + "_body")
@@ -1843,27 +1558,8 @@ func (bop *BlockOp) DelContextDownData(dotid, contextname, downname string) (err
 	}
 
 	//加锁
-	bop.dots_lock_lock.Lock()
-	if _, have := bop.dots_lock[dotid]; have != true {
-		bop.dots_lock[dotid] = &DotLock{
-			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
-		}
-	}
-	// 如果没有锁就加内部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
-		bop.dots_lock[dotid].Lock.Lock()
-		defer func() {
-			bop.dots_lock_lock.Lock()
-			bop.dots_lock[dotid].Lock.Unlock()
-			bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-			bop.dots_lock_lock.Unlock()
-		}()
-	}
-	bop.dots_lock_lock.Unlock()
+	bop.lock(dotid)
+	defer bop.unlock(dotid)
 
 	// 看dot存不存在
 	ishave := base.FileExist(fpath + fname + "_body")
@@ -1953,6 +1649,21 @@ func (bop *BlockOp) DelContextDownData(dotid, contextname, downname string) (err
 	return
 }
 
+// 设置锁的模式为内部，默认为这个
+func (bop *BlockOp) SetLockModeInside() {
+	bop.lock_mode = BLOCK_DOT_LOCK_MODE_INSIDE
+}
+
+// 设置锁的模式为外部，如果设置为这个模式，那么内部的锁机构将不起到作用，必须用提供的外部加锁方法来处理锁。
+func (bop *BlockOp) SetLockModeOutside() {
+	bop.lock_mode = BLOCK_DOT_LOCK_MODE_OUTSIDE
+}
+
+// 获取当前锁的模式
+func (bop *BlockOp) GetLockMode() (mode _BlockDotLockMode) {
+	return bop.lock_mode
+}
+
 // 显示当前的全部dot锁状态
 func (bop *BlockOp) DisplayDotLock() (dots_lock map[string]*DotLock) {
 	return bop.dots_lock
@@ -1965,28 +1676,25 @@ func (bop *BlockOp) OutLock(dotid string) (err error) {
 		return
 	}
 
-	_, _, err = bop.findFilePath(dotid)
-	if err != nil {
-		err = fmt.Errorf("%v", err)
+	// 如果模式是内部，就直接忽略
+	if bop.lock_mode == BLOCK_DOT_LOCK_MODE_INSIDE {
 		return
 	}
 
-	//加锁
+	//对锁加锁，以便看有没有这个dotid的信息
 	bop.dots_lock_lock.Lock()
 	if _, have := bop.dots_lock[dotid]; have != true {
 		bop.dots_lock[dotid] = &DotLock{
 			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
+			//LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock: new(sync.RWMutex),
 		}
 	}
-	// 如果没有锁就加外部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_OUTSIDE
-		bop.dots_lock[dotid].Lock.Lock()
-	}
 	bop.dots_lock_lock.Unlock()
+
+	// 开始处理这个dot的锁
+	bop.dots_lock[dotid].Lock.Lock()
+	bop.dots_lock[dotid].LockTime = time.Now()
 
 	return
 }
@@ -1998,28 +1706,25 @@ func (bop *BlockOp) OutRLock(dotid string) (err error) {
 		return
 	}
 
-	_, _, err = bop.findFilePath(dotid)
-	if err != nil {
-		err = fmt.Errorf("%v", err)
+	// 如果模式是内部，就直接忽略
+	if bop.lock_mode == BLOCK_DOT_LOCK_MODE_INSIDE {
 		return
 	}
 
-	//加锁
+	//对锁加锁，以便看有没有这个dotid的信息
 	bop.dots_lock_lock.Lock()
 	if _, have := bop.dots_lock[dotid]; have != true {
 		bop.dots_lock[dotid] = &DotLock{
 			LockTime: time.Now(),
-			LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
-			Lock:     new(sync.RWMutex),
+			//LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock: new(sync.RWMutex),
 		}
 	}
-	// 如果没有锁就加外部锁，如果是外部锁，就不管了
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_NOTHING {
-		bop.dots_lock[dotid].LockTime = time.Now()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_OUTSIDE
-		bop.dots_lock[dotid].Lock.RLock()
-	}
 	bop.dots_lock_lock.Unlock()
+
+	// 开始处理这个dot的锁
+	bop.dots_lock[dotid].Lock.RLock()
+	bop.dots_lock[dotid].LockTime = time.Now()
 
 	return
 
@@ -2032,27 +1737,19 @@ func (bop *BlockOp) OutUnlock(dotid string) (err error) {
 		return
 	}
 
-	_, _, err = bop.findFilePath(dotid)
-	if err != nil {
-		err = fmt.Errorf("%v", err)
+	// 如果模式是内部，就直接忽略
+	if bop.lock_mode == BLOCK_DOT_LOCK_MODE_INSIDE {
 		return
 	}
 
-	//加锁
-	bop.dots_lock_lock.Lock()
-	defer bop.dots_lock_lock.Unlock()
-
+	//先看有没有这个dot的锁，如果没有，就不管了，直接退出
 	if _, have := bop.dots_lock[dotid]; have != true {
 		return
 	}
-	// 如果是外部锁
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_OUTSIDE {
-		bop.dots_lock[dotid].Lock.Unlock()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-	} else {
-		err = fmt.Errorf("This is not a outside lock!")
-		return
-	}
+
+	// 开始处理这个dot的锁
+	bop.dots_lock[dotid].LockTime = time.Now()
+	bop.dots_lock[dotid].Lock.Unlock()
 
 	return
 }
@@ -2064,27 +1761,19 @@ func (bop *BlockOp) OutRUnlock(dotid string) (err error) {
 		return
 	}
 
-	_, _, err = bop.findFilePath(dotid)
-	if err != nil {
-		err = fmt.Errorf("%v", err)
+	// 如果模式是内部，就直接忽略
+	if bop.lock_mode == BLOCK_DOT_LOCK_MODE_INSIDE {
 		return
 	}
 
-	//加锁
-	bop.dots_lock_lock.Lock()
-	defer bop.dots_lock_lock.Unlock()
-
+	//先看有没有这个dot的锁，如果没有，就不管了，直接退出
 	if _, have := bop.dots_lock[dotid]; have != true {
 		return
 	}
-	// 如果是外部锁
-	if bop.dots_lock[dotid].LockType == BLOCK_DOT_LOCK_TYPE_OUTSIDE {
-		bop.dots_lock[dotid].Lock.RUnlock()
-		bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
-	} else {
-		err = fmt.Errorf("This is not a outside lock!")
-		return
-	}
+
+	// 开始处理这个dot的锁
+	bop.dots_lock[dotid].LockTime = time.Now()
+	bop.dots_lock[dotid].Lock.RUnlock()
 
 	return
 
@@ -2398,5 +2087,101 @@ func (bop *BlockOp) readAfterWithFile(m int64, f *os.File) (b []byte, len int64,
 	}
 	b = make([]byte, len)
 	_, err = f.ReadAt(b, m)
+	return
+}
+
+// 内部的加锁函数
+func (bop *BlockOp) lock(dotid string) {
+
+	// 如果模式不是内部，就直接忽略
+	if bop.lock_mode != BLOCK_DOT_LOCK_MODE_INSIDE {
+		return
+	}
+
+	//对锁加锁，以便看有没有这个dotid的信息
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			//LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock: new(sync.RWMutex),
+		}
+	}
+	bop.dots_lock_lock.Unlock()
+
+	// 开始处理这个dot的锁
+	bop.dots_lock[dotid].Lock.Lock()
+	bop.dots_lock[dotid].LockTime = time.Now()
+	//bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+
+	return
+}
+
+// 内部的解锁函数
+func (bop *BlockOp) unlock(dotid string) {
+
+	// 如果模式不是内部，就直接忽略
+	if bop.lock_mode != BLOCK_DOT_LOCK_MODE_INSIDE {
+		return
+	}
+
+	//先看有没有这个dot的锁，如果没有，就不管了，直接退出
+	if _, have := bop.dots_lock[dotid]; have != true {
+		return
+	}
+
+	// 开始处理这个dot的锁
+	bop.dots_lock[dotid].LockTime = time.Now()
+	//bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+	bop.dots_lock[dotid].Lock.Unlock()
+
+	return
+}
+
+// 内部的加读锁函数
+func (bop *BlockOp) rlock(dotid string) {
+
+	// 如果模式不是内部，就直接忽略
+	if bop.lock_mode != BLOCK_DOT_LOCK_MODE_INSIDE {
+		return
+	}
+
+	//对锁加锁，以便看有没有这个dotid的信息
+	bop.dots_lock_lock.Lock()
+	if _, have := bop.dots_lock[dotid]; have != true {
+		bop.dots_lock[dotid] = &DotLock{
+			LockTime: time.Now(),
+			//LockType: BLOCK_DOT_LOCK_TYPE_NOTHING,
+			Lock: new(sync.RWMutex),
+		}
+	}
+	bop.dots_lock_lock.Unlock()
+
+	// 开始处理这个dot的锁
+	bop.dots_lock[dotid].Lock.RLock()
+	bop.dots_lock[dotid].LockTime = time.Now()
+	//bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_INSIDE
+
+	return
+}
+
+// 内部的解读锁函数
+func (bop *BlockOp) runlock(dotid string) {
+
+	// 如果模式不是内部，就直接忽略
+	if bop.lock_mode != BLOCK_DOT_LOCK_MODE_INSIDE {
+		return
+	}
+
+	//先看有没有这个dot的锁，如果没有，就不管了，直接退出
+	if _, have := bop.dots_lock[dotid]; have != true {
+		return
+	}
+
+	// 开始处理这个dot的锁
+	bop.dots_lock[dotid].LockTime = time.Now()
+	//bop.dots_lock[dotid].LockType = BLOCK_DOT_LOCK_TYPE_NOTHING
+	bop.dots_lock[dotid].Lock.RUnlock()
+
 	return
 }

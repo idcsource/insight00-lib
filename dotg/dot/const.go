@@ -38,13 +38,24 @@ const (
 	DOT_CONTEXT_UP_DOWN_INDEX_OUTDATA_NODEL                                      // 不需要的外部数据文件但还没有删
 )
 
-// block的dot锁类型
+// block的dot锁类型，这个没什么用了
 
-type _BlockDotLockType uint8
+//type _BlockDotLockType uint8
+
+//const (
+//	BLOCK_DOT_LOCK_TYPE_NOTHING  _BlockDotLockType = iota // 空位不用
+//	BLOCK_DOT_LOCK_TYPE_INSIDE                            // 内部锁
+//	BLOCK_DOT_LOCK_TYPE_OUTSIDE                           // 外部锁
+//	BLOCK_DOT_LOCK_TYPE_OUT_TRAN                          // 外部事务
+//)
+
+// block的锁模式
+
+type _BlockDotLockMode uint8
 
 const (
-	BLOCK_DOT_LOCK_TYPE_NOTHING  _BlockDotLockType = iota // 空位不用
-	BLOCK_DOT_LOCK_TYPE_INSIDE                            // 内部锁
-	BLOCK_DOT_LOCK_TYPE_OUTSIDE                           // 外部锁
-	BLOCK_DOT_LOCK_TYPE_OUT_TRAN                          // 外部事务
+	BLOCK_DOT_LOCK_MODE_NOTHING  _BlockDotLockMode = iota // 空位不用
+	BLOCK_DOT_LOCK_MODE_INSIDE                            // 内部管理
+	BLOCK_DOT_LOCK_MODE_OUTSIDE                           // 外部管理
+	BLOCK_DOT_LOCK_MODE_OUT_TRAN                          // 外部管理的事务
 )

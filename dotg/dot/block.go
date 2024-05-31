@@ -132,6 +132,7 @@ func StartBlock(path string, name string) (bop *BlockOp, err error) {
 		deep:           uint8(b_conf_deep),
 		dots_lock:      make(map[string]*DotLock),
 		dots_lock_lock: new(sync.RWMutex),
+		lock_mode:      BLOCK_DOT_LOCK_MODE_INSIDE,
 		running:        true,
 	}
 
