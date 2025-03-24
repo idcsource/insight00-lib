@@ -206,7 +206,14 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 		if err != nil {
 			web.toNotFoundHttp(httpw, httpr, rt)
 		} else {
-			http.ServeFile(httpw, httpr, static)
+			finfo, err := os.Lstat(static)
+			if err != nil {
+				web.toNotFoundHttp(httpw, httpr, rt)
+			} else if finfo.IsDir() {
+				web.toNotFoundHttp(httpw, httpr, rt)
+			} else {
+				http.ServeFile(httpw, httpr, static)
+			}
 		}
 		return
 	}

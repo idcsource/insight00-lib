@@ -55,8 +55,8 @@ func (nt *NodeTree) AddDoor(name, mark string, f FloorDoorInterface, config *jco
 	return
 }
 
-// 增加一个处理静态文件的节点（静态文件节点只能做最后一个节点，所以不再提供节点树的返回）
-func (nt *NodeTree) AddStatic(mark, path string) {
+// 增加一个处理静态文件的节点，candir为是否可以列出目录（静态文件节点只能做最后一个节点，所以不再提供节点树的返回）
+func (nt *NodeTree) AddStatic(mark, path string, candir bool) {
 	nt.if_children = true
 	child := &NodeTree{
 		name:        mark,
@@ -64,7 +64,8 @@ func (nt *NodeTree) AddStatic(mark, path string) {
 		if_children: false,
 		node_type:   NODE_IS_STATIC,
 		floor: &StaticFileFloor{
-			path: path,
+			path:   path,
+			candir: candir,
 		},
 	}
 	nt.children[mark] = child

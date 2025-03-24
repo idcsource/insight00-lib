@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/idcsource/insight00-lib/base"
 )
 
 // 函数负责对控制器进行初始化。
@@ -49,19 +51,24 @@ func (n *NotFoundFloor) ExecHTTP() {
 // 静态文件的系统内默认处理手段
 type StaticFileFloor struct {
 	Floor
-	path string
+	path   string
+	candir bool // 是否允许列出目录
 }
 
 func (f *StaticFileFloor) ExecHTTP() {
 
 	thefile := strings.Join(f.Rt.NowRoutePath, "/")
-	thefile = f.B.static + thefile
+	thefile = f.B.static + base.DirMustEnd(f.path) + thefile
 
-	_, err := os.Stat(thefile)
+	finfo, err := os.Lstat(thefile)
 	if err != nil {
-		f.B.toNotFoundHttp(f.W, f.R, f.Rt)
+		f.B.toNotFoundHttp(f.W, f.R, f.Rt) //找不到404
+	} else if finfo.IsDir() == true && f.candir == true {
+		http.ServeFile(f.W, f.R, thefile) // 是目录但允许列目录
+	} else if finfo.IsDir() == true && f.candir == false {
+		f.B.toNotFoundHttp(f.W, f.R, f.Rt) // 是目录但不允许列目录
 	} else {
-		http.ServeFile(f.W, f.R, thefile)
+		http.ServeFile(f.W, f.R, thefile) // 不是目录
 	}
 }
 
