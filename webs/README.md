@@ -70,9 +70,14 @@ floor作为根节点被注册进路由，所跟的配置为config。通过nodero
 
 需要通过InitRouter()初始化路由之后才能启动web服务，此时当浏览器直接访问http://domain 时，则由注册的FloorInterface接口执行实例进行执行，并在浏览器上显示返回的页面。
 
-注意，不存在默认的index首页访问，http://domain/index 等类似访问地址是无效的，会抛出404。
-
 你需要通过InitRouter()所返回的根节点，通过增加门节点、普通节点、空节点逐级构建节点树，或在某个节点树的末尾再注册一个静态文件节点。
+
+注意，不存在默认的index首页访问，http://domain/index 等类似访问地址是无效的，会抛出404。如果你有强烈愿望让http://domain/Index 成为默认的访问页面，那么你可以将一个MoveToFloor节点配制成根节点，具体看本文档中涉及MoveToFloor的部分。
+
+比如这样：
+
+	noderoot := one_web.InitRouter(&webs.MoveToFloor{Url: "/Index"}, config)
+	noderoot.AddNode("默认的首页", "Index", floor, config)
 
 #### 普通节点
 
