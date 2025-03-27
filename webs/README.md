@@ -68,7 +68,9 @@ floor作为根节点被注册进路由，所跟的配置为config。通过nodero
 
 ### 配置路由详解
 
-需要通过InitRouter()初始化路由之后才能启动web服务，此时当浏览器直接访问http://domain 或默认的http://domain/Index 时，则由注册的FloorInterface接口执行实例进行执行，并在浏览器上显示返回的页面。
+需要通过InitRouter()初始化路由之后才能启动web服务，此时当浏览器直接访问http://domain时，则由注册的FloorInterface接口执行实例进行执行，并在浏览器上显示返回的页面。
+
+注意，不存在默认的index首页访问，http://domain/index等类似访问地址是无效的，会抛出404。
 
 你需要通过InitRouter()所返回的根节点，通过增加门节点、普通节点、空节点逐级构建节点树，或在某个节点树的末尾再注册一个静态文件节点。
 
@@ -86,7 +88,7 @@ floor作为根节点被注册进路由，所跟的配置为config。通过nodero
 
 假设此时你位于根节点，你新增门节点的mark输入的是“Products”，而这个门节点记录了“Index”“List”“Detail”三个执行实例，那么浏览器访问路径将分别为：http://domain/Products/Index ，http://domain/Products/List ，http://domain/Products/Detail 。
 
-注意，门节点没有配置默认节点的地方，也就是Index不能被省略。
+注意，门节点没有配置默认节点的地方，没有默认首页，也就是在这个例子里Index不能被省略，直接访问http://domain/Products会抛出404。
 
 添加成为节点后，方法将会返回此节点下的节点树，你仍然可以在此处继续添加下层节点，但请确保下层节点的mark不要与门节点中出现的同名。
 
