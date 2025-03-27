@@ -32,7 +32,7 @@ func (f *Floor) ViewPolymer() (switchs PolymerSwitch) {
 	return
 }
 
-// order is the View Polymer Execer's name witch will exec next step.
+// order是下一步需要去执行的视图聚合的名称，这个在前期应该被注册过
 func (f *Floor) ViewStream() (stream string, order string, data interface{}) {
 	return
 }

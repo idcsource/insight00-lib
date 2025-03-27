@@ -37,9 +37,9 @@
 
 2. 通过RegMultiDB()方法来注册多个扩展数据库。
 
-3. 通过RegExt()方法来注册扩展，扩展接受所有interface{}类型，如果要注册其他数据方法，可以在这里注册。使用时可以用GetExt()取回。
+3. 通过RegExt()方法来注册扩展，扩展的目的是为了封装，比如非*sql.DB的数据库连接，扩展接受所有interface{}类型，如果要注册其他数据方法，可以在这里注册。使用时可以用GetExt()取回。
 
-4. 通过RegExecPoint()方法来注册执行点，执行点需要符合ExecPointer接口，可以在任何地方通过ExecPoint()去调用，但只返回错误信息。
+4. 通过RegExecPoint()方法来注册执行点，执行点需要符合ExecPointer接口，可以在任何地方通过ExecPoint()去调用，但只返回错误信息，这里是为了封装一些总是需要去处理的简单东西。
 
 5. 通过ViewPolymer()方法来注册视图聚合器，视图聚合器需要符合ViewPolymerExecer接口。
 
@@ -106,11 +106,11 @@
 
 	AllRoutePath string            //整个的RoutePath，也就是除域名外的完整路径
 	NowRoutePath []string          //AllRoutePath经过层级路由之后剩余的部分
-	RealNode     string            //当前节点的树名，如/node1/node2，如果没有使用节点则此处为空
+	RealNode     string            //当前节点的树名（mark），如/node1/node2，如果没有使用节点则此处为空
 	WebConfig    *jconf.JsonConf   //Web站点的总配置文件
 	MyConfig     *jconf.JsonConf   //当前节点的配置文件
 	UrlRequest   map[string]string //Url请求的整理，风格为:id=1/:type=notype
-	Log          *logs.Logs        // 日志，也就是新建web实例时提供的日志
+	Log          *logs.Logs        // 日志，也就是新建web实例时提供的日志，记录日志是个好习惯
 
 ### 关于视图聚合
 
@@ -123,6 +123,21 @@
 ### 如何去写普通节点、404节点
 
 在源码const_struct.go文件中定义了FloorInterface接口和Floor数据类型，在源码floor.go文件中提供了Floor的原型。通常情况下，你自己的普通节点和404节点应该首先继承Floor，之后再按照需要改写自己的ExecHTTP()、ViewPolymer()或ViewStream()方法。
+
+最简单的例子如下：
+
+	type OneNode struct {
+		webs.Floor
+	}
+	func (f *OneNode) ExecHTTP() {
+		fmt.Fprint(f.W, "这是一个测试")
+	}
+	
+从源码floor.go中可以看到通过Floor的InitHTTP方法自动初始化了四个变量，f.W将会负责向浏览器输出内容，f.R则是http的返回数据，f.Rt是上面已经提到的运行时数据，f.B则是Web服务器本身。
+
+这里再强调一次，ViewPolymer方法只是告诉Web服务器这里要不要使用视图聚合以及使用什么类型进行聚合，但每种聚合类型是什么样子，系统没有定义，需要你自己定义。只要ViewPolymer方法返回的不是常数POLYMER_NO，系统将不会去理会ExecHTTP方法，你需要ViewStream方法输出你需要聚合的内容。
+
+
 
 ### 关于普通节点和门节点的复用
 
