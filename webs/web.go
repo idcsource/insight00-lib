@@ -25,7 +25,7 @@ func NewWeb(config *jconf.JsonConf, log logs.Logser) (web *Web) {
 	web = &Web{
 		local:       base.LocalPath(""),
 		config:      config,
-		multiDB:     make(map[string]*sql.DB),
+		MultiDB:     make(map[string]*sql.DB),
 		ext:         make(map[string]interface{}),
 		execpoint:   make(map[string]ExecPointer),
 		viewpolymer: make(map[string]ViewPolymerExecer),
@@ -66,13 +66,13 @@ func (web *Web) GetStaticPath() (path string) {
 
 // 注册主数据库
 func (web *Web) RegDB(database *sql.DB) {
-	web.database = database
+	web.DB = database
 	return
 }
 
 // 注册扩展数据库
 func (web *Web) RegMultiDB(name string, db *sql.DB) {
-	web.multiDB[name] = db
+	web.MultiDB[name] = db
 }
 
 // 注册扩展

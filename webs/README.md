@@ -31,11 +31,26 @@
 
 通过InitRouter()方法初始化路由。需要提供FloorInterface接口的执行实例和相关配置文件，程序将生成路由节点树并返回根节点。之后则需要在此基础上配置整个站点的路由，见后面的配置路由详解。
 
+一个最简单的例子：
+
+	type OneNode struct {
+		webs.Floor
+	}
+
+	func (f *OneNode) ExecHTTP() {
+		fmt.Fprint(f.W, "Hello，这是一个根的测试")
+	}
+	
+	floor := &OneNode{}
+	noderoot := one_web.InitRouter(floor, config)
+	
+floor作为根节点被注册进路由，所跟的配置为config。通过noderoot可以进一步增加子结点路由。
+
 可选的后续配置如下：
 
-1. 通过RegDB()方法注册主数据库，在webs里的默认数据库连接方法是go语言自己提供的database/sql包，所以需要提供*sql.DB来注册。
+1. 通过RegDB()方法注册主数据库，在webs里的默认数据库连接方法是go语言自己提供的database/sql包，所以需要提供*sql.DB来注册，在节点里通过f.B.DB来使用。
 
-2. 通过RegMultiDB()方法来注册多个扩展数据库。
+2. 通过RegMultiDB()方法来注册多个扩展数据库，在节点里通过f.B.MultiDB["注册名"]来使用。
 
 3. 通过RegExt()方法来注册扩展，扩展的目的是为了封装，比如非*sql.DB的数据库连接，扩展接受所有interface{}类型，如果要注册其他数据方法，可以在这里注册。使用时可以用GetExt()取回。
 
@@ -45,7 +60,7 @@
 
 6. 通过SetNotFound()方法修改默认的404处理。
 
-7. 通过AddStatic()方法添加静态资源路径，url是浏览器用哪个路径进行访问，path则是相对于前面static的服务器存放位置。例如，static的配置为“/home/web/static/”，而这个路径下有abc和bcd两个路径存放静态文件，那么可以通过AddStatic("st1","abc")和AddStatic("st2","bcd")来注册，浏览器将可以通过http://domain/st1/xxx 和http://domain/st2/xxx 访问到这两个路径下来的具体静态文件。
+7. 通过AddStatic()方法添加静态资源路径，url是浏览器用哪个路径进行访问，path则是相对于前面static的服务器存放位置。例如，static的配置为“/home/web/static/”，而这个路径下有abc和bcd两个路径存放静态文件，那么可以通过AddStatic("st1","abc")和AddStatic("st2","bcd")来注册，浏览器将可以通过http://domain/st1/xxx 和http://domain/st2/xxx 访问到这两个路径下来的具体静态文件。因为安全原因，这里默认不允许访问目录列表，如果需要访问目录列表，请使用节点路由里的静态文件节点。
 
 ### 启动服务
 
@@ -67,11 +82,30 @@
 
 #### 门节点
 
-通过*NodeTree.AddDoor(name, mark, floordoor, config)方法增加一个门节点。floor则是符合FloorDoorInterface接口的执行实例，其他与普通节点一样。门节点记录了一组平级的普通节点执行实例。
+通过*NodeTree.AddDoor(name, mark, floordoor, config)方法增加一个门节点。floor则是符合FloorDoorInterface接口的执行实例。门节点记录了一组平级的普通节点执行实例。
 
 假设此时你位于根节点，你新增门节点的mark输入的是“Products”，而这个门节点记录了“Index”“List”“Detail”三个执行实例，那么浏览器访问路径将分别为：http://domain/Products/Index ，http://domain/Products/List ，http://domain/Products/Detail 。
 
+注意，门节点没有配置默认节点的地方，也就是Index不能被省略。
+
 添加成为节点后，方法将会返回此节点下的节点树，你仍然可以在此处继续添加下层节点，但请确保下层节点的mark不要与门节点中出现的同名。
+
+一个最简单的例子如下：
+
+	type ProductsDoor struct {
+	}
+
+	func (f *ProductsDoor) FloorList() (list webs.FloorDoor) {
+		list = make(map[string]webs.FloorInterface)
+		list["Index"] = &IndexNode{}
+		list["List"] = &ListNode{}
+		list["Detail"] = &DetailNode{}
+		return
+	}
+	
+将这个门节点添加进路由：
+
+	noderoot.AddDoor("产品", "Products", &ProductsDoor{}, config)
 
 #### 空节点
 
@@ -81,7 +115,7 @@
 
 #### 静态文件节点
 
-通过*NodeTree.AddStatic(mark, path)方法增加一个静态文件节点。path依然是相对于static配置的相对路径。在此节点下无法再增加新的节点。
+通过*NodeTree.AddStatic(mark, path, candir)方法增加一个静态文件节点。path依然是相对于static配置的相对路径。candir如果为true则可以访问目录文件列表，否则目录文件列表将为404,建议考虑安全因素禁止目录访问。在此节点下无法再增加新的节点。
 
 ### GET风格
 
@@ -89,7 +123,7 @@
 
 ### POST处理
 
-在节点、执行点中，你可以自己从变量r中（也就是*http.Request）自己获取。比如首先执行r.ParseFrom()或r.ParseMultipartForm()，然后再通过r.Form、r.PostFrom、r.FormValue()等方式读取。然后再使用base包里的InputProcessor进行检查和危险字符过滤。
+在节点、执行点中，你可以自己从变量f.R中（也就是*http.Request，后文中会有说明）自己获取。比如首先执行f.R.ParseFrom()或f.R.ParseMultipartForm()，然后再通过f.R.Form、f.R.PostFrom、f.R.FormValue()等方式读取。然后再使用base包里的InputProcessor进行检查和危险字符过滤。
 
 也可以使用本webs包提供的Field字段工具，这个可以直接从*http.Request获取字段，并根据提供的配置文件对字段进行检查和危险字符过滤。配置文件使用jconf包来实现，例子如下：
 
@@ -132,6 +166,11 @@
 	func (f *OneNode) ExecHTTP() {
 		fmt.Fprint(f.W, "这是一个测试")
 	}
+	
+将这个节点添加进路由：
+
+	floor := &OneNode{}
+	noderoot.AddNode("一个普通节点", "One", floor, config)
 	
 从源码floor.go中可以看到通过Floor的InitHTTP方法自动初始化了四个变量，f.W将会负责向浏览器输出内容，f.R则是http的返回数据，f.Rt是上面已经提到的运行时数据，f.B则是Web服务器本身。
 

@@ -46,8 +46,8 @@ type Web struct {
 	local       string                       // 本地路径
 	static      string                       // 静态资源路径
 	config      *jconf.JsonConf              // 自身的配置文件
-	database    *sql.DB                      // 主数据库连接，使用Go语言自己提供的方法
-	multiDB     map[string]*sql.DB           // 扩展多数据库准备，使用Go语言自己提供的方法
+	DB          *sql.DB                      // 主数据库连接，使用Go语言自己提供的方法
+	MultiDB     map[string]*sql.DB           // 扩展多数据库准备，使用Go语言自己提供的方法
 	ext         map[string]interface{}       // Extension扩展数据（功能）
 	execpoint   map[string]ExecPointer       // 执行点
 	viewpolymer map[string]ViewPolymerExecer // view polymer's interface
