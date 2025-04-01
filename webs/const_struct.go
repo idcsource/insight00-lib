@@ -84,7 +84,7 @@ type Runtime struct {
 	WebConfig    *jconf.JsonConf   //Web站点的总配置文件
 	MyConfig     *jconf.JsonConf   //当前节点的配置文件
 	UrlRequest   map[string]string //Url请求的整理，风格为:id=1/:type=notype
-	Log          *logs.Logser      // 日志
+	Log          logs.Logser       // 日志
 }
 
 // FloorInterface 此为控制器接口的定义

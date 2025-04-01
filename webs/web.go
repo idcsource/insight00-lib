@@ -197,6 +197,7 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 		NowRoutePath: urla,
 		UrlRequest:   parameter,
 		WebConfig:    web.config,
+		Log:          web.log,
 	}
 
 	//静态路由
