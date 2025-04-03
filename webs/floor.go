@@ -21,6 +21,7 @@ func (f *Floor) InitHTTP(w http.ResponseWriter, r *http.Request, b *Web, rt Runt
 	f.R = r
 	f.Rt = rt
 	f.B = b
+	f.B.ToVisitLog(f.R, f.Rt, "200")
 }
 
 func (f *Floor) ExecHTTP() {
@@ -40,6 +41,14 @@ func (f *Floor) ViewStream() (stream string, order string, data interface{}) {
 // 无法找到页面的系统内默认处理手段
 type NotFoundFloor struct {
 	Floor
+}
+
+func (n *NotFoundFloor) InitHTTP(w http.ResponseWriter, r *http.Request, b *Web, rt Runtime) {
+	n.W = w
+	n.R = r
+	n.Rt = rt
+	n.B = b
+	n.B.ToVisitLog(n.R, n.Rt, "404")
 }
 
 func (n *NotFoundFloor) ExecHTTP() {
@@ -85,6 +94,14 @@ func (f *EmptyFloor) ExecHTTP() {
 type MoveToFloor struct {
 	Floor
 	Url string
+}
+
+func (f *MoveToFloor) InitHTTP(w http.ResponseWriter, r *http.Request, b *Web, rt Runtime) {
+	f.W = w
+	f.R = r
+	f.Rt = rt
+	f.B = b
+	f.B.ToVisitLog(f.R, f.Rt, "303")
 }
 
 func (f *MoveToFloor) ExecHTTP() {

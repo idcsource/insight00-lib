@@ -7,10 +7,13 @@ package webs
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"runtime"
+	"strings"
 
 	"github.com/idcsource/insight00-lib/base"
 	"github.com/idcsource/insight00-lib/jconf"
@@ -30,6 +33,7 @@ func NewWeb(config *jconf.JsonConf, log logs.Logser) (web *Web) {
 		execpoint:   make(map[string]ExecPointer),
 		viewpolymer: make(map[string]ViewPolymerExecer),
 		log:         log,
+		visit_log:   true,
 		router:      newRouter(),
 	}
 	// 检查静态资源地址是不是有
@@ -41,6 +45,11 @@ func NewWeb(config *jconf.JsonConf, log logs.Logser) (web *Web) {
 		static = base.DirMustEnd(static)
 	}
 	web.static = static
+	// 检查是否配备了访问日志
+	visit_log, err := web.config.GetBool("visitlog")
+	if err == nil {
+		web.visit_log = visit_log
+	}
 
 	// 准备最大并发
 	var max int64
@@ -263,4 +272,42 @@ func (web *Web) toNotFoundHttp(w http.ResponseWriter, r *http.Request, rt Runtim
 	runfloor.InitHTTP(w, r, web, rt)
 	runfloor.ExecHTTP()
 	return
+}
+
+// 获取IP的内部函数
+func (web *Web) getIP(r *http.Request) (string, error) {
+	ip := r.Header.Get("X-Real-IP")
+	if net.ParseIP(ip) != nil {
+		return ip, nil
+	}
+
+	ip = r.Header.Get("X-Forward-For")
+	for _, i := range strings.Split(ip, ",") {
+		if net.ParseIP(i) != nil {
+			return i, nil
+		}
+	}
+
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return "", err
+	}
+
+	if net.ParseIP(ip) != nil {
+		return ip, nil
+	}
+
+	return "", errors.New("no valid ip found")
+}
+
+// 执行记录访问日志
+func (web *Web) ToVisitLog(r *http.Request, rt Runtime, stat string) {
+	if web.visit_log == false {
+		return
+	}
+	ip, err := web.getIP(r)
+	if err != nil {
+		ip = "0.0.0.0"
+	}
+	web.log.WriteLog(ip + " : " + r.Proto + " : " + r.Host + " : " + rt.AllRoutePath + " : " + r.UserAgent() + " : " + stat)
 }

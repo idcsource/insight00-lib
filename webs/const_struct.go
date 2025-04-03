@@ -53,6 +53,7 @@ type Web struct {
 	viewpolymer map[string]ViewPolymerExecer // view polymer's interface
 	router      *Router                      // 路由器
 	log         logs.Logser                  // 运行日志
+	visit_log   bool                         // 是否开启访问日志
 	max_routine chan bool                    // 最大并发
 }
 
