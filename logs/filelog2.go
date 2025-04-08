@@ -18,8 +18,12 @@ import (
 
 // 一个符合logs.Logser接口的文件log
 type FileLoger struct {
-	file *os.File
-	lock *sync.RWMutex
+	filename     string
+	max          uint64 // 单文件最大日志条目数
+	now          uint64
+	file         *os.File
+	lock         *sync.RWMutex
+	writechannel chan string
 }
 
 // 一个符合logs.Logser接口的文件log实例的创建
@@ -31,9 +35,70 @@ func NewFileLoger(filename string) (fl *FileLoger, err error) {
 		return
 	}
 	fl = &FileLoger{
-		file: files,
-		lock: new(sync.RWMutex),
+		filename: filename,
+		max:      FILE_LOGER_MAX_LOG,
+		now:      0,
+		file:     files,
+		lock:     new(sync.RWMutex),
 	}
+	fl.writechannel = make(chan string, FILE_LOGER_WRITE_CHAN)
+
+	// 查看当前日志文件里面的条目数
+	fi, err := files.Stat()
+	if err != nil {
+		err = fmt.Errorf("logs: %v", err)
+		return
+	}
+	if fi.Size() > 0 {
+		files.Seek(0, 0)
+
+		buf := bufio.NewScanner(files)
+		buf.Split(bufio.ScanLines)
+
+		for buf.Scan() {
+			fl.now++
+		}
+		if err = buf.Err(); err != nil {
+			err = fmt.Errorf("logs: %v", err)
+			return
+		}
+	}
+
+	// 如果文件大了，就新建
+	if fl.now >= fl.max {
+		err = fl.newLogFile()
+		if err != nil {
+			err = fmt.Errorf("logs: %v", err)
+			return
+		}
+	}
+
+	return
+}
+
+// 新建一个log文件
+func (fl *FileLoger) newLogFile() (err error) {
+	//关闭文件
+	err = fl.file.Close()
+	if err != nil {
+		err = fmt.Errorf("logs: %v", err)
+		return
+	}
+	//重命名文件
+	rename := fl.filename + "_" + time.Now().Format("2006-01-02_15:04:05")
+	err = os.Rename(fl.filename, rename)
+	if err != nil {
+		err = fmt.Errorf("logs: %v", err)
+		return
+	}
+	//创建新文件
+	files, err := os.OpenFile(fl.filename, os.O_RDWR|os.O_CREATE, 0660)
+	if err != nil {
+		err = fmt.Errorf("logs: %v", err)
+		return
+	}
+	fl.file = files
+	fl.now = 0
 	return
 }
 
@@ -44,6 +109,17 @@ func (fl *FileLoger) WriteLog(l string) (err error) {
 	//加写锁
 	fl.lock.Lock()
 	defer fl.lock.Unlock()
+
+	// 如果文件大了，就新建
+	if fl.now >= fl.max {
+		err = fl.newLogFile()
+		if err != nil {
+			err = fmt.Errorf("logs: %v", err)
+			return
+		}
+	}
+
+	fl.now++
 
 	// 查找文件末尾的偏移量
 	theend, err := fl.file.Seek(0, os.SEEK_END)
