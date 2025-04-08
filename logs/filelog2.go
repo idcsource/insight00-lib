@@ -73,6 +73,53 @@ func NewFileLoger(filename string) (fl *FileLoger, err error) {
 		}
 	}
 
+	go fl.goToLog() // 非堵塞的写日志
+
+	return
+}
+
+// 写log的go
+func (fl *FileLoger) goToLog() {
+	for {
+		select {
+		case thelog := <-fl.writechannel:
+			fl.toWriteLog(thelog)
+		default:
+
+		}
+
+	}
+}
+
+// 实际的写日志函数
+func (fl *FileLoger) toWriteLog(thelog string) (err error) {
+	//加写锁
+	fl.lock.Lock()
+	defer fl.lock.Unlock()
+
+	// 如果文件大了，就新建
+	if fl.now >= fl.max {
+		err = fl.newLogFile()
+		if err != nil {
+			err = fmt.Errorf("logs: %v", err)
+			return
+		}
+	}
+
+	fl.now++
+
+	// 查找文件末尾的偏移量
+	theend, err := fl.file.Seek(0, os.SEEK_END)
+	if err != nil {
+		err = fmt.Errorf("logs: %v", err)
+		return
+	}
+	// 写入一条log
+	_, err = fl.file.WriteAt([]byte(thelog), theend)
+	if err != nil {
+		err = fmt.Errorf("logs: %v", err)
+		return
+	}
 	return
 }
 
@@ -102,37 +149,16 @@ func (fl *FileLoger) newLogFile() (err error) {
 	return
 }
 
+// 设置每个日志文件最多存储的日志条数，默认是1000
+func (fl *FileLoger) SetCountPerFile(max_count uint64) {
+	fl.max = max_count
+}
+
 // 追加一条Log
 func (fl *FileLoger) WriteLog(l string) (err error) {
 	l = time.Now().Format("2006-01-02 15:04:05.000") + " : " + l + "\n"
 
-	//加写锁
-	fl.lock.Lock()
-	defer fl.lock.Unlock()
-
-	// 如果文件大了，就新建
-	if fl.now >= fl.max {
-		err = fl.newLogFile()
-		if err != nil {
-			err = fmt.Errorf("logs: %v", err)
-			return
-		}
-	}
-
-	fl.now++
-
-	// 查找文件末尾的偏移量
-	theend, err := fl.file.Seek(0, os.SEEK_END)
-	if err != nil {
-		err = fmt.Errorf("logs: %v", err)
-		return
-	}
-	// 写入一条log
-	_, err = fl.file.WriteAt([]byte(l), theend)
-	if err != nil {
-		err = fmt.Errorf("logs: %v", err)
-		return
-	}
+	fl.writechannel <- l
 
 	return
 }
