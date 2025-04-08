@@ -84,7 +84,6 @@ func (fl *FileLoger) goToLog() {
 		select {
 		case thelog := <-fl.writechannel:
 			fl.toWriteLog(thelog)
-		default:
 
 		}
 
