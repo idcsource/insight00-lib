@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
 	"runtime"
 	"strings"
 
@@ -123,11 +122,11 @@ func (web *Web) InitRouter(f FloorInterface, config *jconf.JsonConf) (root *Node
 	return web.router.buildRouter(f, config)
 }
 
-// 创建静态地址,path必须是相对于静态地址(static)的地址
-func (web *Web) AddStatic(url, path string) {
-	path = base.AbsolutePath(path, web.static)
-	web.router.addStatic(url, path)
-}
+// 创建静态地址,path必须是相对于静态地址(static)的地址（不再提供的功能）
+// func (web *Web) AddStatic(url, path string) {
+// 	path = base.AbsolutePath(path, web.static)
+// 	web.router.addStatic(url, path)
+// }
 
 // 修改默认的404处理
 func (web *Web) SetNotFound(f FloorInterface) {
@@ -209,24 +208,24 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 		Log:          web.log,
 	}
 
-	//静态路由
-	static, have := web.router.getStatic(httpr.URL.Path)
-	if have == true {
-		_, err := os.Stat(static)
-		if err != nil {
-			web.toNotFoundHttp(httpw, httpr, rt)
-		} else {
-			finfo, err := os.Lstat(static)
-			if err != nil {
-				web.toNotFoundHttp(httpw, httpr, rt)
-			} else if finfo.IsDir() {
-				web.toNotFoundHttp(httpw, httpr, rt)
-			} else {
-				http.ServeFile(httpw, httpr, static)
-			}
-		}
-		return
-	}
+	//静态路由(不再提供的功能)
+	// static, have := web.router.getStatic(httpr.URL.Path)
+	// if have == true {
+	// 	_, err := os.Stat(static)
+	// 	if err != nil {
+	// 		web.toNotFoundHttp(httpw, httpr, rt)
+	// 	} else {
+	// 		finfo, err := os.Lstat(static)
+	// 		if err != nil {
+	// 			web.toNotFoundHttp(httpw, httpr, rt)
+	// 		} else if finfo.IsDir() {
+	// 			web.toNotFoundHttp(httpw, httpr, rt)
+	// 		} else {
+	// 			http.ServeFile(httpw, httpr, static)
+	// 		}
+	// 	}
+	// 	return
+	// }
 
 	// 如果为0,则处理首页，直接取出NodeTree的根节点
 	if len(urla) == 0 {

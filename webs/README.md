@@ -62,8 +62,6 @@ floor作为根节点被注册进路由，所跟的配置为config。通过nodero
 
 6. 通过SetNotFound()方法修改默认的404处理。
 
-7. 通过AddStatic()方法添加静态资源路径，url是浏览器用哪个路径进行访问，path则是相对于前面static的服务器存放位置。例如，static的配置为“/home/web/static/”，而这个路径下有abc和bcd两个路径存放静态文件，那么可以通过AddStatic("st1","abc")和AddStatic("st2","bcd")来注册，浏览器将可以通过http://domain/st1/xxx 和http://domain/st2/xxx 访问到这两个路径下来的具体静态文件。因为安全原因，这里默认不允许访问目录列表，如果需要访问目录列表，请使用节点路由里的静态文件节点。
-
 ### 启动服务
 
 通过Start()就可以启动这个web服务。
@@ -124,7 +122,7 @@ floor作为根节点被注册进路由，所跟的配置为config。通过nodero
 
 #### 静态文件节点
 
-通过*NodeTree.AddStatic(mark, path, candir)方法增加一个静态文件节点。path依然是相对于static配置的相对路径。candir如果为true则可以访问目录文件列表，否则目录文件列表将为404,建议考虑安全因素禁止目录访问。在此节点下无法再增加新的节点。
+通过*NodeTree.AddStatic(mark, path, candir)方法增加一个静态文件节点。path是相对于前面static的服务器存放位置。例如，static的配置为“/home/web/static/”，而这个路径下有abc和bcd两个路径存放静态文件，那么可以通过*NodeTree.AddStatic("abc","st1",true)和*NodeTree.AddStatic("bcd","st2",false)来注册，浏览器将可以通过http://domain/st1/xxx 和http://domain/st2/xxx 访问到这两个路径下来的具体静态文件。candir如果为true则可以访问目录文件列表，否则目录文件列表将为404,建议考虑安全因素禁止目录访问。在此节点下无法再增加新的节点。
 
 ### GET风格
 
