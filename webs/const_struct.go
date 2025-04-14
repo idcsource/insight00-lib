@@ -10,6 +10,8 @@ import (
 	"database/sql"
 	"net/http"
 	"regexp"
+	"sync"
+	"time"
 
 	"github.com/idcsource/insight00-lib/jconf"
 	"github.com/idcsource/insight00-lib/logs"
@@ -18,6 +20,12 @@ import (
 const (
 	// 默认最大并发
 	MAX_ROUTINE_RATIO = 10
+	// 默认页面锁清理循环时间，秒
+	DEFAULT_CLEAN_PAGE_LOCK_MAIN = 10
+	// 默认的页面锁超时时间，秒
+	DEFAULT_PAGE_LOCK_OUTTIME = 15
+	// 默认的页面锁延迟，Microsecond，微秒
+	DEFAULT_PAGE_LOCK_DELAY = 10
 )
 
 const (
@@ -43,18 +51,26 @@ const (
 
 // Web的数据结构
 type Web struct {
-	local       string                       // 本地路径
-	static      string                       // 静态资源路径
-	config      *jconf.JsonConf              // 自身的配置文件
-	DB          *sql.DB                      // 主数据库连接，使用Go语言自己提供的方法
-	MultiDB     map[string]*sql.DB           // 扩展多数据库准备，使用Go语言自己提供的方法
-	ext         map[string]interface{}       // Extension扩展数据（功能）
-	execpoint   map[string]ExecPointer       // 执行点
-	viewpolymer map[string]ViewPolymerExecer // view polymer's interface
-	router      *Router                      // 路由器
-	log         logs.Logser                  // 运行日志
-	visit_log   bool                         // 是否开启访问日志
-	max_routine chan bool                    // 最大并发
+	local          string                       // 本地路径
+	static         string                       // 静态资源路径
+	config         *jconf.JsonConf              // 自身的配置文件
+	DB             *sql.DB                      // 主数据库连接，使用Go语言自己提供的方法
+	MultiDB        map[string]*sql.DB           // 扩展多数据库准备，使用Go语言自己提供的方法
+	ext            map[string]interface{}       // Extension扩展数据（功能）
+	execpoint      map[string]ExecPointer       // 执行点
+	viewpolymer    map[string]ViewPolymerExecer // view polymer's interface
+	router         *Router                      // 路由器
+	log            logs.Logser                  // 运行日志
+	visit_log      bool                         // 是否开启访问日志
+	page_lock_main *sync.Mutex                  // 页面锁总控
+	page_lock      map[string]*PageLock         // 页面锁
+	max_routine    chan bool                    // 最大并发
+}
+
+// 页面锁
+type PageLock struct {
+	Lock *sync.Mutex
+	Time time.Time
 }
 
 // 路由器基本类型

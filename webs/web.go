@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/idcsource/insight00-lib/base"
 	"github.com/idcsource/insight00-lib/jconf"
@@ -25,15 +27,17 @@ func NewWeb(config *jconf.JsonConf, log logs.Logser) (web *Web) {
 		log, _ = logs.NewRunLoger(100)
 	}
 	web = &Web{
-		local:       base.LocalPath(""),
-		config:      config,
-		MultiDB:     make(map[string]*sql.DB),
-		ext:         make(map[string]interface{}),
-		execpoint:   make(map[string]ExecPointer),
-		viewpolymer: make(map[string]ViewPolymerExecer),
-		log:         log,
-		visit_log:   true,
-		router:      newRouter(),
+		local:          base.LocalPath(""),
+		config:         config,
+		MultiDB:        make(map[string]*sql.DB),
+		ext:            make(map[string]interface{}),
+		execpoint:      make(map[string]ExecPointer),
+		viewpolymer:    make(map[string]ViewPolymerExecer),
+		log:            log,
+		visit_log:      true,
+		page_lock_main: new(sync.Mutex),
+		page_lock:      make(map[string]*PageLock),
+		router:         newRouter(),
 	}
 	// 检查静态资源地址是不是有
 	static, err := web.config.GetString("static")
@@ -184,7 +188,30 @@ func (web *Web) Start() (err error) {
 			return
 		}
 	}()
+
+	go web.cleanPageLock() // 页面锁清理子进程
+
 	return
+}
+
+// 页面锁清理
+func (web *Web) cleanPageLock() {
+	for {
+		time.Sleep(DEFAULT_CLEAN_PAGE_LOCK_MAIN * time.Second) // 先休息10秒钟
+
+		web.page_lock_main.Lock()
+
+		timenow := time.Now()
+
+		for k, v := range web.page_lock {
+			d := timenow.Sub(v.Time).Seconds()
+			if d >= DEFAULT_PAGE_LOCK_OUTTIME {
+				delete(web.page_lock, k)
+			}
+		}
+
+		web.page_lock_main.Unlock()
+	}
 }
 
 // HTTP的路由，提供给"net/http"包使用
@@ -207,6 +234,23 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 		WebConfig:    web.config,
 		Log:          web.log,
 	}
+
+	// 这里有个锁实现，避免并发太集中
+	var thelock *PageLock
+	var have bool
+	thelock, have = web.page_lock[rt.AllRoutePath]
+	if have == false {
+		web.page_lock_main.Lock()
+		web.page_lock[rt.AllRoutePath] = &PageLock{Lock: new(sync.Mutex), Time: time.Now()}
+		thelock = web.page_lock[rt.AllRoutePath]
+		web.page_lock_main.Unlock()
+	}
+	thelock.Lock.Lock()
+	go func() {
+		time.Sleep(DEFAULT_PAGE_LOCK_DELAY * time.Microsecond)
+		thelock.Time = time.Now()
+		thelock.Lock.Unlock()
+	}()
 
 	//静态路由(不再提供的功能)
 	// static, have := web.router.getStatic(httpr.URL.Path)
