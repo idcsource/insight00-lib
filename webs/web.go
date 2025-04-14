@@ -238,13 +238,13 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 	// 这里有个锁实现，避免并发太集中
 	var thelock *PageLock
 	var have bool
+	web.page_lock_main.Lock()
 	thelock, have = web.page_lock[rt.AllRoutePath]
 	if have == false {
-		web.page_lock_main.Lock()
 		web.page_lock[rt.AllRoutePath] = &PageLock{Lock: new(sync.Mutex), Time: time.Now()}
 		thelock = web.page_lock[rt.AllRoutePath]
-		web.page_lock_main.Unlock()
 	}
+	web.page_lock_main.Unlock()
 	thelock.Lock.Lock()
 	go func() {
 		time.Sleep(DEFAULT_PAGE_LOCK_DELAY * time.Microsecond)
