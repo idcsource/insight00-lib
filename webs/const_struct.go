@@ -17,7 +17,7 @@ import (
 
 const (
 	// 默认最大并发
-	MAX_ROUTINE_RATIO = 1000
+	MAX_ROUTINE_RATIO = 10
 )
 
 const (
