@@ -222,6 +222,12 @@ func (web *Web) ServeHTTP(httpw http.ResponseWriter, httpr *http.Request) {
 		<-web.max_routine
 	}()
 
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Panic: ", err)
+		}
+	}()
+
 	//要运行的Floor
 	var runfloor FloorInterface
 	//将获得的URL用斜线拆分成[]string

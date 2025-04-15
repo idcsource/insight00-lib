@@ -52,6 +52,12 @@ func (n *NotFoundFloor) InitHTTP(w http.ResponseWriter, r *http.Request, b *Web,
 }
 
 func (n *NotFoundFloor) ExecHTTP() {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Panic: ", err)
+		}
+	}()
+
 	n.W.WriteHeader(404)
 	fmt.Fprint(n.W, "404 Page Not Found")
 	return
@@ -65,6 +71,12 @@ type StaticFileFloor struct {
 }
 
 func (f *StaticFileFloor) ExecHTTP() {
+
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Panic: ", err)
+		}
+	}()
 
 	thefile := strings.Join(f.Rt.NowRoutePath, "/")
 	thefile = f.B.static + base.DirMustEnd(f.path) + thefile
@@ -105,5 +117,12 @@ func (f *MoveToFloor) InitHTTP(w http.ResponseWriter, r *http.Request, b *Web, r
 }
 
 func (f *MoveToFloor) ExecHTTP() {
+
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Panic: ", err)
+		}
+	}()
+
 	http.Redirect(f.W, f.R, f.Url, 303)
 }
