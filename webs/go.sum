@@ -1,6 +1,4 @@
 github.com/idcsource/insight00-lib/base v0.0.0-20240515013159-d7489126c142 h1:cDpVhh4DCshG/bXx7OE63R7I9nPo+KAsBmPTPqKmT6U=
 github.com/idcsource/insight00-lib/base v0.0.0-20240515013159-d7489126c142/go.mod h1:hp2WZ5DCPJ1ksr/UHBBsf1BoCEDZLSC1igt3Pudg4ng=
-github.com/idcsource/insight00-lib/jconf v0.0.0-20240515013159-d7489126c142 h1:Y33cX78frHXmmXVAGI5rpkFj4OYaDa79OlPJLFb0uGQ=
-github.com/idcsource/insight00-lib/jconf v0.0.0-20240515013159-d7489126c142/go.mod h1:5eZAHiE2Nvi6rH5jxEofV3AYZy2NAbCqDYn+YWPHdmc=
 github.com/idcsource/insight00-lib/logs v0.0.0-20240515013159-d7489126c142 h1:cTb2YkfnOxnQ9S/SmOvTolfnNJuYmtO2al4IDHKksdM=
 github.com/idcsource/insight00-lib/logs v0.0.0-20240515013159-d7489126c142/go.mod h1:voPOhdi0XlcZGe/lVqNhZSh3YShEJqMNV+vazb3Fu94=
