@@ -578,10 +578,10 @@ func (j *YamlConf) DelValueInRoot(name string) (err error) {
 }
 
 // 输入成为YAML，TODO
-func (j *YamlConf) OutputYaml() (str string, err error) {
-	// TODO
-	return
-}
+// func (j *YamlConf) OutputYaml() (str string, err error) {
+// 	// TODO
+// 	return
+// }
 
 // 处理节点的标记，形如“abcd>dbce>dddd>dee”
 func (j *YamlConf) nodeOp(node string) (nodes []string, err error) {
