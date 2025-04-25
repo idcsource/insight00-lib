@@ -218,7 +218,7 @@ func (j *YamlConf) GetStruct(node string, v interface{}) (err error) {
 		return
 	}
 
-	err = yaml.Unmarshal(data, &v)
+	err = yaml.Unmarshal(data, v)
 	return
 }
 
@@ -577,22 +577,11 @@ func (j *YamlConf) DelValueInRoot(name string) (err error) {
 	return
 }
 
-// 输入成为JSON
-// func (j *YamlConf) OutputYaml() (str string, err error) {
-// 	strb, err := yaml.Marshal(j.yaml)
-// 	if err != nil {
-// 		err = fmt.Errorf("yconf: %v", err)
-// 		return
-// 	}
-// 	var out bytes.Buffer
-// 	err = yaml.Indent(&out, strb, "", "\t")
-// 	if err != nil {
-// 		err = fmt.Errorf("yconf: %v", err)
-// 		return
-// 	}
-// 	str = out.String()
-// 	return
-// }
+// 输入成为YAML，TODO
+func (j *YamlConf) OutputYaml() (str string, err error) {
+	// TODO
+	return
+}
 
 // 处理节点的标记，形如“abcd>dbce>dddd>dee”
 func (j *YamlConf) nodeOp(node string) (nodes []string, err error) {
