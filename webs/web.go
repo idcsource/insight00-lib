@@ -17,12 +17,11 @@ import (
 	"time"
 
 	"github.com/idcsource/insight00-lib/base"
-	"github.com/idcsource/insight00-lib/jconf"
 	"github.com/idcsource/insight00-lib/logs"
 )
 
 // 创建一个Web，db数据库和log日志可以为nil
-func NewWeb(config *jconf.JsonConf, log logs.Logser) (web *Web) {
+func NewWeb(config Configer, log logs.Logser) (web *Web) {
 	if log == nil {
 		log, _ = logs.NewRunLoger(100)
 	}
@@ -122,7 +121,7 @@ func (web *Web) ExecPoint(name string, w http.ResponseWriter, r *http.Request, b
 }
 
 // 创建路由，设置根节点，并返回根结点，之后所有的对节点的添加操作均是*NodeTree提供的方法
-func (web *Web) InitRouter(f FloorInterface, config *jconf.JsonConf) (root *NodeTree) {
+func (web *Web) InitRouter(f FloorInterface, config Configer) (root *NodeTree) {
 	return web.router.buildRouter(f, config)
 }
 

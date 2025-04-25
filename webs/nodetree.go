@@ -5,12 +5,8 @@
 
 package webs
 
-import (
-	"github.com/idcsource/insight00-lib/jconf"
-)
-
 // 创建根节点，内部调用使用，不需要直接新建
-func AddRootNode(f FloorInterface, config *jconf.JsonConf) (root *NodeTree) {
+func AddRootNode(f FloorInterface, config Configer) (root *NodeTree) {
 	root = &NodeTree{
 		name:        "Index",
 		mark:        "",
@@ -24,7 +20,7 @@ func AddRootNode(f FloorInterface, config *jconf.JsonConf) (root *NodeTree) {
 }
 
 // 增加一个普通的节点
-func (nt *NodeTree) AddNode(name, mark string, f FloorInterface, config *jconf.JsonConf) (child *NodeTree) {
+func (nt *NodeTree) AddNode(name, mark string, f FloorInterface, config Configer) (child *NodeTree) {
 	nt.if_children = true
 	child = &NodeTree{
 		name:        name,
@@ -40,7 +36,7 @@ func (nt *NodeTree) AddNode(name, mark string, f FloorInterface, config *jconf.J
 }
 
 // 增加一个节点Door
-func (nt *NodeTree) AddDoor(name, mark string, f FloorDoorInterface, config *jconf.JsonConf) (child *NodeTree) {
+func (nt *NodeTree) AddDoor(name, mark string, f FloorDoorInterface, config Configer) (child *NodeTree) {
 	nt.if_children = true
 	child = &NodeTree{
 		name:        name,

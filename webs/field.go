@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/idcsource/insight00-lib/base"
-	"github.com/idcsource/insight00-lib/jconf"
 )
 
 const (
@@ -99,7 +98,7 @@ type OneFormData struct {
 // config是针对某个节点的特有字段设定，主要是哪些启用，以及名字什么的。
 // sfc则是unit设定的所有字段信息。
 // sfc会根据config调整运行时的配置。
-func NewFormData(config *jconf.JsonConf, sfc StaticFields, r *http.Request, maxmemory int64) (fd *FormData, err error) {
+func NewFormData(config Configer, sfc StaticFields, r *http.Request, maxmemory int64) (fd *FormData, err error) {
 	fd = &FormData{
 		R:  r,
 		Ip: base.NewInputProcessor(),
@@ -120,7 +119,7 @@ func NewFormData(config *jconf.JsonConf, sfc StaticFields, r *http.Request, maxm
 }
 
 // 准备运行时字段设置
-func (fd *FormData) prepareRuntimeFields(config *jconf.JsonConf, sfc StaticFields) (rfc RuntimeFields, err error) {
+func (fd *FormData) prepareRuntimeFields(config Configer, sfc StaticFields) (rfc RuntimeFields, err error) {
 	rfc = make(map[string]*FieldConfig)
 
 	for k, sf := range sfc {

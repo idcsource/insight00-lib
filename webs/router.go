@@ -9,7 +9,6 @@ import (
 	"regexp"
 
 	"github.com/idcsource/insight00-lib/base"
-	"github.com/idcsource/insight00-lib/jconf"
 )
 
 // 创建路由器，在NewWeb()中调用，不需要手动调用
@@ -23,7 +22,7 @@ func newRouter() (router *Router) {
 }
 
 // 创建路由，行为是增加根节点
-func (router *Router) buildRouter(f FloorInterface, config *jconf.JsonConf) (root *NodeTree) {
+func (router *Router) buildRouter(f FloorInterface, config Configer) (root *NodeTree) {
 	root = AddRootNode(f, config)
 	router.node_tree = root
 	router.router_ok = true

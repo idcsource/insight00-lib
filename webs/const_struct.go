@@ -13,7 +13,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/idcsource/insight00-lib/jconf"
 	"github.com/idcsource/insight00-lib/logs"
 )
 
@@ -53,7 +52,7 @@ const (
 type Web struct {
 	local          string                       // 本地路径
 	static         string                       // 静态资源路径
-	config         *jconf.JsonConf              // 自身的配置文件
+	config         Configer                     // 自身的配置文件
 	DB             *sql.DB                      // 主数据库连接，使用Go语言自己提供的方法
 	MultiDB        map[string]*sql.DB           // 扩展多数据库准备，使用Go语言自己提供的方法
 	ext            map[string]interface{}       // Extension扩展数据（功能）
@@ -85,7 +84,7 @@ type Router struct {
 type NodeTree struct {
 	name        string               // 节点的名称
 	mark        string               // 用来做路由的，也就是未来显示在连接上的地址
-	config      *jconf.JsonConf      // 节点配置文件
+	config      Configer             // 节点配置文件
 	if_children bool                 // 是否有下层
 	node_type   int                  // 类型，首页、普通页、入口Door，NODE_IS_*
 	floor       FloorInterface       // 控制器
@@ -98,8 +97,8 @@ type Runtime struct {
 	AllRoutePath string            //整个的RoutePath，也就是除域名外的完整路径
 	NowRoutePath []string          //AllRoutePath经过层级路由之后剩余的部分
 	RealNode     string            //当前节点的树名，如/node1/node2，如果没有使用节点则此处为空
-	WebConfig    *jconf.JsonConf   //Web站点的总配置文件
-	MyConfig     *jconf.JsonConf   //当前节点的配置文件
+	WebConfig    Configer          //Web站点的总配置文件
+	MyConfig     Configer          //当前节点的配置文件
 	UrlRequest   map[string]string //Url请求的整理，风格为:id=1/:type=notype
 	Log          logs.Logser       // 日志
 }
@@ -135,4 +134,27 @@ type ExecPointer interface {
 // View Polymer's Execer
 type ViewPolymerExecer interface {
 	Exec(switchs PolymerSwitch, rt Runtime, stream string, data interface{}) (newstream string, newswitchs PolymerSwitch, neworder string, newdata interface{})
+}
+
+// 配置接口，支持jconf和yconf两个库，也就是支持JSON或YAML风格的配置文件
+type Configer interface {
+	AddValue(node string, name string, value interface{}) (err error)
+	AddValueInRoot(name string, value interface{}) (err error)
+	DelValue(node string, name string) (err error)
+	DelValueInRoot(name string) (err error)
+	GetArray(node string) (ar []interface{}, err error)
+	GetBool(node string) (b bool, err error)
+	GetEnum(node string) (em []string, err error)
+	GetFloat64(node string) (f64 float64, err error)
+	GetInt64(node string) (i64 int64, err error)
+	// GetNode(node string) (newjconf Configer, err error)
+	GetString(node string) (str string, err error)
+	GetStruct(node string, v interface{}) (err error)
+	GetValue(node string) (oneNodeVal interface{}, err error)
+	// MarshalBinary() (data []byte, err error)
+	Println()
+	ReadFile(fname string) (err error)
+	ReadString(yamlstream string) (err error)
+	SetValue(node string, value interface{}) (err error)
+	// UnmarshalBinary(data []byte) (err error)
 }
