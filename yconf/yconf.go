@@ -459,16 +459,16 @@ func (j *YamlConf) AddValue(node string, name string, value interface{}) (err er
 					onearray := make([]interface{}, 0)
 					err = yaml.Unmarshal(strb, &onearray)
 					if err != nil {
-						oneNodeNode[one] = value
+						oneNodeNode[name] = value
 						err = nil
 					} else {
-						oneNodeNode[one] = onearray
+						oneNodeNode[name] = onearray
 					}
 				} else {
-					oneNodeNode[one] = onemap
+					oneNodeNode[name] = onemap
 				}
 			} else {
-				oneNodeNode[one] = value
+				oneNodeNode[name] = value
 				err = nil
 			}
 		} else {
