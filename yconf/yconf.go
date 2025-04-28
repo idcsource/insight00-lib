@@ -8,6 +8,8 @@
 package yconf
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -33,21 +35,32 @@ func (j *YamlConf) ReadFile(fname string) (err error) {
 	if err != nil {
 		return fmt.Errorf("yconf: %v", err)
 	}
-	yamlmap, err := j.doMapStart([]byte(yamlstream))
+	jsonstream, err := yaml.YAMLToJSON([]byte(yamlstream))
 	if err != nil {
 		return fmt.Errorf("yconf: %v", err)
 	}
-	j.yaml = yamlmap
+	err = j.doMap(jsonstream, j.yaml)
+	if err != nil {
+		return fmt.Errorf("yconf: %v", err)
+	}
+	// yamlmap, err := j.doMapStart([]byte(yamlstream))
+	// if err != nil {
+	// 	return fmt.Errorf("yconf: %v", err)
+	// }
+	// j.yaml = yamlmap
 	return nil
 }
 
 // 从JSON字符串中读取配置
 func (j *YamlConf) ReadString(yamlstream string) (err error) {
-	yamlmap, err := j.doMapStart([]byte(yamlstream))
+	jsonstream, err := yaml.YAMLToJSON([]byte(yamlstream))
 	if err != nil {
 		return fmt.Errorf("yconf: %v", err)
 	}
-	j.yaml = yamlmap
+	err = j.doMap(jsonstream, j.yaml)
+	if err != nil {
+		return fmt.Errorf("yconf: %v", err)
+	}
 	return nil
 }
 
@@ -579,11 +592,27 @@ func (j *YamlConf) DelValueInRoot(name string) (err error) {
 	return
 }
 
-// 输入成为YAML，TODO
-// func (j *YamlConf) OutputYaml() (str string, err error) {
-// 	// TODO
-// 	return
-// }
+// 输入成为YAML
+func (j *YamlConf) OutputYaml() (str string, err error) {
+	strb, err := json.Marshal(j.yaml)
+	if err != nil {
+		err = fmt.Errorf("yconf: %v", err)
+		return
+	}
+	var out bytes.Buffer
+	err = json.Indent(&out, strb, "", "\t")
+	if err != nil {
+		err = fmt.Errorf("yconf: %v", err)
+		return
+	}
+	str = out.String()
+	str_b, err := yaml.JSONToYAML([]byte(str))
+	if err != nil {
+		err = fmt.Errorf("yconf: %v", err)
+		return
+	}
+	return string(str_b), err
+}
 
 // 处理节点的标记，形如“abcd>dbce>dddd>dee”
 func (j *YamlConf) nodeOp(node string) (nodes []string, err error) {
@@ -601,18 +630,10 @@ func (j *YamlConf) nodeOp(node string) (nodes []string, err error) {
 
 // 转换JSON到map
 func (j *YamlConf) doMap(stream []byte, mapResult map[string]interface{}) (err error) {
-	if err := yaml.Unmarshal(stream, &mapResult); err != nil {
+	if err := json.Unmarshal(stream, &mapResult); err != nil {
 		return fmt.Errorf("The JSON format is wrong: %v", err)
 	}
 	return nil
-}
-
-func (j *YamlConf) doMapStart(stream []byte) (mapResult map[string]interface{}, err error) {
-	if err = yaml.Unmarshal(stream, &mapResult); err != nil {
-		err = fmt.Errorf("The JSON format is wrong: %v", err)
-		return
-	}
-	return
 }
 
 func (j *YamlConf) Println() {
