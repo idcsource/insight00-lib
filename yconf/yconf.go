@@ -13,7 +13,7 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"gopkg.in/yaml.v3"
+	"github.com/goccy/go-yaml"
 
 	"github.com/idcsource/insight00-lib/base"
 )
@@ -33,19 +33,21 @@ func (j *YamlConf) ReadFile(fname string) (err error) {
 	if err != nil {
 		return fmt.Errorf("yconf: %v", err)
 	}
-	err = j.doMap([]byte(yamlstream), j.yaml)
+	yamlmap, err := j.doMapStart([]byte(yamlstream))
 	if err != nil {
 		return fmt.Errorf("yconf: %v", err)
 	}
+	j.yaml = yamlmap
 	return nil
 }
 
 // 从JSON字符串中读取配置
 func (j *YamlConf) ReadString(yamlstream string) (err error) {
-	err = j.doMap([]byte(yamlstream), j.yaml)
+	yamlmap, err := j.doMapStart([]byte(yamlstream))
 	if err != nil {
 		return fmt.Errorf("yconf: %v", err)
 	}
+	j.yaml = yamlmap
 	return nil
 }
 
@@ -603,6 +605,14 @@ func (j *YamlConf) doMap(stream []byte, mapResult map[string]interface{}) (err e
 		return fmt.Errorf("The JSON format is wrong: %v", err)
 	}
 	return nil
+}
+
+func (j *YamlConf) doMapStart(stream []byte) (mapResult map[string]interface{}, err error) {
+	if err = yaml.Unmarshal(stream, &mapResult); err != nil {
+		err = fmt.Errorf("The JSON format is wrong: %v", err)
+		return
+	}
+	return
 }
 
 func (j *YamlConf) Println() {
